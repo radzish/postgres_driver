@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/driver/driver.iml" filepath="$PROJECT_DIR$/driver/driver.iml" />
+      <module fileurl="file://$PROJECT_DIR$/driver_gen/driver_gen.iml" filepath="$PROJECT_DIR$/driver_gen/driver_gen.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/postgres_driver.iml" filepath="$PROJECT_DIR$/.idea/postgres_driver.iml" />
+    </modules>
+  </component>
+</project>
