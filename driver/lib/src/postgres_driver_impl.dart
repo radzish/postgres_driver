@@ -88,7 +88,7 @@ class RawResultSet extends Struct {
         Pointer<Utf8> valuePtr = rowPtr[col];
         if (valuePtr.address != 0) {
           String rawValue = Utf8.fromUtf8(valuePtr);
-          dynamic value = _resolveValue(valueType, rawValue);
+          dynamic value = _stringToValue(valueType, rawValue);
           result[row][col] = value;
         }
       }
@@ -106,7 +106,7 @@ class RawResultSet extends Struct {
         if (valuePtr.address != 0) {
           int valueType = _columnTypes[col];
           String valueString = Utf8.fromUtf8(valuePtr);
-          dynamic value = _resolveValue(valueType, valueString);
+          dynamic value = _stringToValue(valueType, valueString);
           Pointer<Utf8> columnNamePtr = _columnNames[col];
           String columnName = Utf8.fromUtf8(columnNamePtr);
           result[row][columnName] = value;
@@ -122,24 +122,37 @@ class RawResultSet extends Struct {
     closeResultSet(this.addressOf);
   }
 
-  dynamic _resolveValue(int valueType, String valueString) {
-    if (valueString == null) {
-      return null;
-    }
+}
 
-    switch (valueType) {
-      case 16:
-        return valueString == "t";
-      case _pgTypeInt0:
-      case _pgTypeInt1:
-        return int.parse(valueString);
-      case _pgTypeVarchar:
-        return valueString;
-      case 1184: //date
-        return valueString;
-    }
-    return valueString;
+
+dynamic _stringToValue(int valueType, String valueString) {
+  if (valueString == null) {
+    return null;
   }
+
+  switch (valueType) {
+    case 16:
+      return valueString == "t";
+    case _pgTypeInt0:
+    case _pgTypeInt1:
+      return int.parse(valueString);
+    case _pgTypeVarchar:
+      return valueString;
+    case 1114: //timestamp
+      return DateTime.parse("${valueString}Z");
+    case 1184: //date
+      return valueString;
+  }
+  return valueString;
+}
+
+String _valueToString(dynamic value) {
+  if (value == null) {
+    return null;
+  }
+
+  //TODO: implement!!!!
+  return value.toString();
 }
 
 typedef open_connection_func = Pointer<Int32> Function(Pointer<Utf8> connectionString);
@@ -320,14 +333,6 @@ class PGConnection {
     }
 
     return result;
-  }
-
-  String _valueToString(dynamic value) {
-    if (value == null) {
-      return null;
-    }
-    //TODO: implement!!!!
-    return value.toString();
   }
 
   String _prepareInsertQuery(String table, Iterable<String> keys) {
