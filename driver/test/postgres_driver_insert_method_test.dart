@@ -16,7 +16,7 @@ void main() {
     await conn.open();
 
     (await conn.execute('''
-        drop table test_table
+        drop table if exists test_table
       ''')).close();
 
     (await conn.execute('''

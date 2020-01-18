@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:conn_pool/conn_pool.dart';
 import 'package:postgres_driver/postgres_driver.dart';
+import 'package:process_run/shell.dart';
 
 main() async {
 //  ConnectionPool pool = ConnectionPool("dbname=pexaconnect_app user=pexaconnect_app password=pexaconnect_app");
@@ -20,11 +23,28 @@ main() async {
   PGConnection conn = PGConnection("dbname=postgres_dart_test user=postgres_dart_test password=postgres_dart_test");
   await conn.open();
 
-  ResultSet rs = await conn.execute("insert into test_table(id, name) values(:id, :name)", [
-    {"id": 0, "name": "name0"},
-//    {"id": 1, "name": "name1"},
-  ]);
-
+  ResultSet rs = await conn.execute('''
+        drop table if exists test_table
+      ''');
   rs.close();
-  await conn.close();
+//
+//  rs = await conn.execute('''
+//        create table test_table(
+//          id int primary key,
+//          update_time timestamp
+//        )
+//      ''');
+//  rs.close();
+//
+//  rs = await conn.select("select update_time from test_table", params: {});
+//  rs.close();
+
+//  print("${rs.rows}");
+
+//  (await conn.execute('''
+//        create table test_table(
+//          id int primary key,
+//          update_time timestamp
+//        )
+//      ''')).close();
 }

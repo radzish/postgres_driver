@@ -9,7 +9,7 @@ typedef struct _ResultSet {
 } ResultSet;
 
 PGconn* open_connection(char* connection_string);
-ResultSet* perform_query(PGconn* conn, char* query, int paramCount, const char * const* paramValues);
+ResultSet* perform_query(PGconn* conn, char* query, int paramCount, const char * const* paramValues, int reconnect);
 void close_connection(PGconn*  conn);
 void close_result_set(ResultSet*  rs);
 

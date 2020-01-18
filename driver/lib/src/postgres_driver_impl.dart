@@ -165,9 +165,9 @@ typedef close_result_set_func = Void Function(Pointer<RawResultSet> resultSet);
 typedef CloseResultSet = void Function(Pointer<RawResultSet> resultSet);
 
 typedef perform_query_func = Pointer<RawResultSet> Function(
-    Pointer<Int32> connection, Pointer<Utf8> query, Int32 paramCount, Pointer<Pointer<Utf8>> paramValues);
+    Pointer<Int32> connection, Pointer<Utf8> query, Int32 paramCount, Pointer<Pointer<Utf8>> paramValues, Int32 reconnect);
 typedef PerformQuery = Pointer<RawResultSet> Function(
-    Pointer<Int32> connection, Pointer<Utf8> query, int paramCount, Pointer<Pointer<Utf8>> paramValues);
+    Pointer<Int32> connection, Pointer<Utf8> query, int paramCount, Pointer<Pointer<Utf8>> paramValues, int reconnect);
 
 typedef test_func = Pointer<RawResultSet> Function();
 typedef Test = Pointer<RawResultSet> Function();
@@ -209,7 +209,7 @@ class PGConnection {
 
     // case for query with no params
     if (rawQuery.values.isEmpty) {
-      Pointer<RawResultSet> result = performQuery(_conn, Utf8.toUtf8(rawQuery.query), 0, _toValuesArray([]));
+      Pointer<RawResultSet> result = performQuery(_conn, Utf8.toUtf8(rawQuery.query), 0, _toValuesArray([]), 1);
       if (result.ref.error.address != 0) {
         throw _extractError(result.ref.error);
       }
@@ -219,7 +219,7 @@ class PGConnection {
     // case for query with params
     List<RawResultSet> rawResults = rawQuery.values.map((rowValues) {
       Pointer<RawResultSet> result =
-          performQuery(_conn, Utf8.toUtf8(rawQuery.query), rowValues.length, _toValuesArray(rowValues));
+          performQuery(_conn, Utf8.toUtf8(rawQuery.query), rowValues.length, _toValuesArray(rowValues), 1);
       RawResultSet rawResultSet = result.ref;
       if (rawResultSet.error.address != 0) {
         throw _extractError(rawResultSet.error);
