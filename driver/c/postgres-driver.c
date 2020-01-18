@@ -1,8 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include <libpq-fe.h>
 #include "postgres-driver.h"
+
+bool starts_with(const char *pre, const char *str) {
+    size_t lenpre = strlen(pre),
+           lenstr = strlen(str);
+    return lenstr < lenpre ? false : memcmp(pre, str, lenpre) == 0;
+}
 
 PGconn* open_connection(char* connection_string) {
     PGconn* conn = PQconnectdb(connection_string);
@@ -16,9 +23,25 @@ PGconn* open_connection(char* connection_string) {
     return conn;
 }
 
-ResultSet* perform_query(PGconn* conn, char* query, int paramCount, const char * const* paramValues) {
-
+ResultSet* perform_query(PGconn* conn, char* query, int paramCount, const char * const* paramValues, int reconnect) {
     PGresult *res;
+
+    ResultSet* resultSet = (ResultSet*)malloc(sizeof(ResultSet));
+    resultSet->res = NULL;
+    resultSet->error = NULL;
+    resultSet->columnsNumber = 0;
+    resultSet->columnNames = NULL;
+    resultSet->rowsNumber = 0;
+    resultSet->rows = NULL;
+
+    if (PQstatus(conn) == CONNECTION_BAD) {
+        printf("Connection is bad, trying to recover ...\n");
+        PQreset(conn);
+      if (PQstatus(conn) == CONNECTION_BAD) {
+        resultSet->error = "can not recover connection";
+        return resultSet;
+      }
+    }
 
     if(paramCount == 0) {
         res = PQexec(conn, query);
@@ -26,16 +49,20 @@ ResultSet* perform_query(PGconn* conn, char* query, int paramCount, const char *
         res = PQexecParams(conn, query, paramCount, NULL, paramValues, NULL, NULL, 0);
     }
 
+    char* error = PQerrorMessage(conn);
+    if(error[0] != '\0') {
+      if(reconnect == 1 && starts_with("server closed the connection", error)) {
+        free(res);
+        printf("Connection was closed re-trying ...\n");
+        // connection will be reset at the beginning of this recurrent call
+        return perform_query(conn, query, paramCount, paramValues, 0);
+      }
 
-    ResultSet* resultSet = (ResultSet*)malloc(sizeof(ResultSet));
-    resultSet->error = NULL;
-    resultSet->res = res;
-    resultSet->columnsNumber = 0;
-    resultSet->columnNames = NULL;
-    resultSet->rowsNumber = 0;
-    resultSet->rows = NULL;
+      resultSet->error = error;
+      return resultSet;
+    }
 
-    char* error = PQresultErrorMessage(res);
+    error = PQresultErrorMessage(res);
     if(error[0] != '\0') {
         resultSet->error = error;
         return resultSet;
@@ -44,6 +71,8 @@ ResultSet* perform_query(PGconn* conn, char* query, int paramCount, const char *
     if (PQresultStatus(res) != PGRES_TUPLES_OK) {
         return resultSet;
     }
+
+    resultSet->res = res;
 
     resultSet->columnsNumber = PQnfields(res);
 
@@ -71,7 +100,9 @@ ResultSet* perform_query(PGconn* conn, char* query, int paramCount, const char *
 }
 
 void close_result_set(ResultSet* resultSet) {
-    PQclear(resultSet->res);
+    if(resultSet->res != NULL) {
+      PQclear(resultSet->res);
+    }
     free(resultSet);
 }
 
