@@ -1,14 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
 #include <libpq-fe.h>
 #include "postgres-driver.h"
 
-bool starts_with(const char *pre, const char *str) {
+int starts_with(const char *pre, const char *str) {
     size_t lenpre = strlen(pre),
            lenstr = strlen(str);
-    return lenstr < lenpre ? false : memcmp(pre, str, lenpre) == 0;
+    return lenstr < lenpre ? 0 : (memcmp(pre, str, lenpre) == 0 ? 1 : 0);
 }
 
 PGconn* open_connection(char* connection_string) {
@@ -51,7 +50,7 @@ ResultSet* perform_query(PGconn* conn, char* query, int paramCount, const char *
 
     char* error = PQerrorMessage(conn);
     if(error[0] != '\0') {
-      if(reconnect == 1 && starts_with("server closed the connection", error)) {
+      if(reconnect == 1 && starts_with("server closed the connection", error) == 1) {
         free(res);
         printf("Connection was closed re-trying ...\n");
         // connection will be reset at the beginning of this recurrent call
