@@ -6,9 +6,7 @@ part of 'service.dart';
 // TransactionalGenerator
 // **************************************************************************
 
-class Service extends _Service {
-  Service(DbContext db, Resource _resource) : super(db, _resource);
-
+mixin _$Service on _Service {
   @override
   Future<String> read() async {
     return await db.executeInReadTransaction(() => super.read());
@@ -25,31 +23,27 @@ class Service extends _Service {
   }
 }
 
-class Service1 extends _Service1 {
-  Service1(DbContext db) : super(db);
+mixin _$Service1 on _Service1 {}
+
+mixin _$ParametrizedService<T extends String, K> on _ParametrizedService<T, K> {
 }
 
-class ParametrizedService<T extends String, K> extends _ParametrizedService<T, K> {
-  ParametrizedService(DbContext db) : super(db);
-}
+mixin _$ServiceWithNamedConstructor on _ServiceWithNamedConstructor {}
 
-class ServiceWithNamedConstructor extends _ServiceWithNamedConstructor {
-  ServiceWithNamedConstructor.named(DbContext db) : super.named(db);
-}
+mixin _$ServiceWithConstructorWithOptionalNotNamedParameters
+    on _ServiceWithConstructorWithOptionalNotNamedParameters {}
 
-class ServiceWithConstructorWithOptionalNotNamedParameters
-    extends _ServiceWithConstructorWithOptionalNotNamedParameters {
-  ServiceWithConstructorWithOptionalNotNamedParameters(DbContext db, [String optional]) : super(db, optional);
-}
+mixin _$ServiceWithConstructorWithOptionalNamedParameters
+    on _ServiceWithConstructorWithOptionalNamedParameters {}
 
-class ServiceWithConstructorWithOptionalNamedParameters extends _ServiceWithConstructorWithOptionalNamedParameters {
-  ServiceWithConstructorWithOptionalNamedParameters(DbContext db, {String optional}) : super(db, optional: optional);
-}
+mixin _$Resource on _Resource {
+  @override
+  Future<String> readFromDb() async {
+    return await db.executeInReadTransaction(() => super.readFromDb());
+  }
 
-class ServiceWithDefaultRead extends _ServiceWithDefaultRead {
-  ServiceWithDefaultRead(DbContext db) : super(db);
-}
-
-class ServiceWithDefaultWrite extends _ServiceWithDefaultWrite {
-  ServiceWithDefaultWrite(DbContext db) : super(db);
+  @override
+  Future<void> writeToDb(String value) async {
+    return await db.executeInReadTransaction(() => super.writeToDb(value));
+  }
 }

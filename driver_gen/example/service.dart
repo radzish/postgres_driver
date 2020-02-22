@@ -2,7 +2,9 @@ import 'package:postgres_driver/postgres_driver.dart';
 
 part 'service.g.dart';
 
-abstract class _Service implements Transactional {
+class Service = _Service with _$Service;
+
+class _Service implements Transactional {
   @override
   final DbContext db;
 
@@ -29,11 +31,19 @@ abstract class _Service implements Transactional {
   }
 }
 
+class Service1 extends _Service1 with _$Service1 {
+  Service1(DbContext db) : super(db);
+}
+
 abstract class _Service1 implements Transactional {
   @override
   final DbContext db;
 
   _Service1(this.db);
+}
+
+class ParametrizedService<T extends String, K> extends _ParametrizedService<T, K> with _$ParametrizedService<T, K> {
+  ParametrizedService(DbContext db) : super(db);
 }
 
 abstract class _ParametrizedService<T extends String, K> implements Transactional {
@@ -43,11 +53,20 @@ abstract class _ParametrizedService<T extends String, K> implements Transactiona
   _ParametrizedService(this.db);
 }
 
+class ServiceWithNamedConstructor extends _ServiceWithNamedConstructor with _$ServiceWithNamedConstructor {
+  ServiceWithNamedConstructor.named(DbContext db) : super.named(db);
+}
+
 abstract class _ServiceWithNamedConstructor implements Transactional {
   @override
   final DbContext db;
 
   _ServiceWithNamedConstructor.named(this.db);
+}
+
+class ServiceWithConstructorWithOptionalNotNamedParameters extends _ServiceWithConstructorWithOptionalNotNamedParameters
+    with _$ServiceWithConstructorWithOptionalNotNamedParameters {
+  ServiceWithConstructorWithOptionalNotNamedParameters(DbContext db) : super(db);
 }
 
 abstract class _ServiceWithConstructorWithOptionalNotNamedParameters implements Transactional {
@@ -59,6 +78,12 @@ abstract class _ServiceWithConstructorWithOptionalNotNamedParameters implements 
   _ServiceWithConstructorWithOptionalNotNamedParameters(this.db, [this.optional]);
 }
 
+class ServiceWithConstructorWithOptionalNamedParameters extends _ServiceWithConstructorWithOptionalNamedParameters
+    with _$ServiceWithConstructorWithOptionalNamedParameters {
+  ServiceWithConstructorWithOptionalNamedParameters(DbContext db, { String optional}) : super(db, optional: optional);
+}
+
+
 abstract class _ServiceWithConstructorWithOptionalNamedParameters implements Transactional {
   @override
   final DbContext db;
@@ -68,32 +93,21 @@ abstract class _ServiceWithConstructorWithOptionalNamedParameters implements Tra
   _ServiceWithConstructorWithOptionalNamedParameters(this.db, {this.optional});
 }
 
-abstract class _ServiceWithDefaultRead implements Transactional {
+class Resource = _Resource with _$Resource;
+
+class _Resource implements Transactional {
   @override
   final DbContext db;
 
-  _ServiceWithDefaultRead(this.db);
-}
-
-abstract class _ServiceWithDefaultWrite implements Transactional {
-  @override
-  final DbContext db;
-
-  _ServiceWithDefaultWrite(this.db);
-}
-
-class Resource {
-  final DbContext _db;
-
-  Resource(this._db);
+  _Resource(this.db);
 
   Future<String> readFromDb() async {
-    final rs = await _db.conn.select("select name from test_table where id = @id", params: {"id": "0"});
+    final rs = await db.conn.select("select name from test_table where id = @id", params: {"id": "0"});
     final value = rs.rows[0][0];
     return value;
   }
 
   Future<void> writeToDb(String value) async {
-    await _db.conn.update("test_table", {"name": value});
+    await db.conn.update("test_table", {"name": value});
   }
 }
