@@ -1,20 +1,22 @@
 import 'dart:async';
 
+import 'package:analyzer/analyzer.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:build/build.dart';
 import 'package:built_collection/built_collection.dart';
 import 'package:postgres_driver/postgres_driver.dart';
+import 'package:postgres_driver_gen/src/helpers.dart';
 import 'package:source_gen/source_gen.dart';
 import 'package:code_builder/code_builder.dart' as code;
 
 TypeChecker _transactionalClassChecker = TypeChecker.fromRuntime(Transactional);
 TypeChecker _transactionChecker = TypeChecker.fromRuntime(Transaction);
-RegExp _publicClassNameRegexp = RegExp(r"_+([^_]+)");
+RegExp _privateClassNameRegexp = RegExp(r"_+([^_]+)");
 
 class TransactionalGenerator extends Generator {
   @override
   FutureOr<String> generate(LibraryReader library, BuildStep buildStep) async {
-    final transactionalClasses = library.classes.where(_isTransactional);
+    final transactionalClasses = library.classes.where(_isTransactional).where((cls) => cls.isPrivate);
     if (transactionalClasses.isEmpty) {
       return null;
     }
@@ -25,18 +27,13 @@ class TransactionalGenerator extends Generator {
   bool _isTransactional(ClassElement cls) => _transactionalClassChecker.isAssignableFrom(cls);
 
   String _generateTransactional(ClassElement cls) {
-    _validateClass(cls);
-
-    return code.Class(
+    return _convertToMixin(code.Class(
       (b) => b
-        ..name = _privateToPublicName(cls.displayName)
+        ..name = _generateMixinName(cls.displayName)
         ..types = _buildClassParameters(cls)
         ..extend = code.refer(_buildClassExtends(cls))
-        ..constructors = _buildConstructors(cls)
-        ..methods = _buildTransactionalMethods(cls)
-      //
-      ,
-    ).accept(code.DartEmitter()).toString();
+        ..methods = _buildTransactionalMethods(cls),
+    ).accept(code.DartEmitter()).toString());
   }
 
   String _buildClassExtends(ClassElement cls) {
@@ -54,30 +51,8 @@ class TransactionalGenerator extends Generator {
     );
   }
 
-  String _privateToPublicName(String name) {
-    return _publicClassNameRegexp.firstMatch(name).group(1);
-  }
-
-  void _validateClass(ClassElement cls) {
-    if (!cls.isPrivate) {
-      throw "Transactional class ${cls.displayName} must be private";
-    }
-  }
-
-  ListBuilder<code.Constructor> _buildConstructors(ClassElement cls) {
-    return ListBuilder(cls.constructors.map(_buildConstructor));
-  }
-
-  code.Constructor _buildConstructor(ConstructorElement constructor) {
-    return code.Constructor(
-      (b) => b
-        ..name = constructor.displayName.isNotEmpty ? constructor.displayName : null
-        ..requiredParameters = _buildMethodRequiredParams(constructor)
-        ..optionalParameters = _buildMethodOptionalParams(constructor)
-        ..initializers = _buildSuperInitializer(constructor)
-      //
-      ,
-    );
+  String _generateMixinName(String name) {
+    return "_\$${_privateClassNameRegexp.firstMatch(name).group(1)}";
   }
 
   ListBuilder<code.Parameter> _buildMethodRequiredParams(FunctionTypedElement constructor) {
@@ -92,22 +67,10 @@ class TransactionalGenerator extends Generator {
     );
   }
 
-  ListBuilder<code.Code> _buildSuperInitializer(ConstructorElement constructor) {
-    return ListBuilder([
-      code
-          .refer("super${constructor.displayName.isNotEmpty ? ".${constructor.displayName}" : ""}")
-          .call(
-            _buildMethodPositionalParamNames(constructor),
-            _buildMethodNamedParamNames(constructor),
-          )
-          .code
-    ]);
-  }
-
   code.Parameter _buildMethodParam(ParameterElement param) {
     return code.Parameter((b) => b
       ..name = param.name
-      ..type = code.refer(param.type.name)
+      ..type = code.refer(findParameterTypeName(param))
       ..named = param.isNamed);
   }
 
@@ -166,5 +129,19 @@ class TransactionalGenerator extends Generator {
     final wrapperCall = code.refer('db.$wrapper').call([superCall]).awaited.returned.statement;
 
     return code.Block((b) => b..statements = ListBuilder([wrapperCall]));
+  }
+
+  String _convertToMixin(String classCode) {
+    // replace class with mixin keyword
+    var result = "mixin ${classCode.substring(5)}";
+
+    // find last "extends" before first {
+    final openingBracePosition = result.indexOf("{");
+    final extendsPosition = result.substring(0, openingBracePosition).lastIndexOf("extends");
+
+    // replace "extends" with "on"
+    result = result.substring(0, extendsPosition) + " on " + result.substring(extendsPosition + "extends".length);
+
+    return result;
   }
 }
