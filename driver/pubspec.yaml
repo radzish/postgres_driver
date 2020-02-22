@@ -9,7 +9,8 @@ environment:
 
 dependencies:
   ffi: ^0.1.3
-  conn_pool: 2.1.9
+  resource_pool:
+    git: git://github.com/radzish/resource_pool.git
 
 dev_dependencies:
   pedantic: ^1.8.0+1

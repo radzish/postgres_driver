@@ -1,6 +1,4 @@
-import 'dart:async';
-
-import 'package:postgres_driver/src/postgres_driver_impl.dart';
+import 'package:postgres_driver/src/db_context.dart';
 
 class Transaction {
   const Transaction._();
@@ -9,5 +7,5 @@ class Transaction {
 const Transaction transaction = Transaction._();
 
 abstract class Transactional {
-  PGConnection get conn;
+  DbContext get db;
 }

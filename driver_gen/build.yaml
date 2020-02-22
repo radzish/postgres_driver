@@ -6,9 +6,8 @@ targets:
 
 builders:
   transactional_generator:
-    target: ':transactional_generator'
     import: 'package:postgres_driver_gen/builder.dart'
-    builder_factories: ['storeGenerator']
+    builder_factories: ['transactionalGenerator']
     build_extensions: { '.dart': ['.transactional.g.part'] }
     auto_apply: dependents
     build_to: cache

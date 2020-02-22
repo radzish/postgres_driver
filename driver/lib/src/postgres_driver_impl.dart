@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:core';
 import 'dart:ffi';
 
-import 'package:conn_pool/conn_pool.dart';
 import 'package:ffi/ffi.dart';
 
 const int _pgTypeInt0 = 20;
@@ -121,9 +120,7 @@ class RawResultSet extends Struct {
         dylib.lookup<NativeFunction<close_result_set_func>>("close_result_set").asFunction();
     closeResultSet(this.addressOf);
   }
-
 }
-
 
 dynamic _stringToValue(int valueType, String valueString) {
   if (valueString == null) {
@@ -164,8 +161,8 @@ typedef CloseConnection = void Function(Pointer<Int32> connection);
 typedef close_result_set_func = Void Function(Pointer<RawResultSet> resultSet);
 typedef CloseResultSet = void Function(Pointer<RawResultSet> resultSet);
 
-typedef perform_query_func = Pointer<RawResultSet> Function(
-    Pointer<Int32> connection, Pointer<Utf8> query, Int32 paramCount, Pointer<Pointer<Utf8>> paramValues, Int32 reconnect);
+typedef perform_query_func = Pointer<RawResultSet> Function(Pointer<Int32> connection, Pointer<Utf8> query,
+    Int32 paramCount, Pointer<Pointer<Utf8>> paramValues, Int32 reconnect);
 typedef PerformQuery = Pointer<RawResultSet> Function(
     Pointer<Int32> connection, Pointer<Utf8> query, int paramCount, Pointer<Pointer<Utf8>> paramValues, int reconnect);
 
@@ -196,6 +193,8 @@ class PGConnection {
       _dylib = DynamicLibrary.open(path);
     }
   }
+
+  bool get isClosed => _closed;
 
   Future<void> open() async {
     final OpenConnection openConnection =
@@ -393,39 +392,4 @@ class _RawQuery {
   final Iterable<List<String>> values;
 
   _RawQuery(this.query, this.values);
-}
-
-class ConnectionPool {
-  final String connectionString;
-
-  final SharedPool<PGConnection> pool;
-
-  ConnectionPool(this.connectionString)
-      : pool = SharedPool<PGConnection>(_ConnectionManager(connectionString), minSize: 0, maxSize: 3);
-
-  Future<Connection<PGConnection>> open() async {
-    return pool.get();
-  }
-
-  Future<void> close(Connection<PGConnection> connection) async {
-    await pool.release(connection);
-  }
-}
-
-class _ConnectionManager implements ConnectionManager<PGConnection> {
-  final String connectionString;
-
-  _ConnectionManager(this.connectionString);
-
-  @override
-  Future<PGConnection> open() async {
-    PGConnection connection = PGConnection(connectionString);
-    await connection.open();
-    return connection;
-  }
-
-  @override
-  FutureOr<void> close(PGConnection connection) async {
-    await connection.close();
-  }
 }

@@ -1,8 +1,4 @@
-import 'dart:io';
-
-import 'package:conn_pool/conn_pool.dart';
 import 'package:postgres_driver/postgres_driver.dart';
-import 'package:process_run/shell.dart';
 
 main() async {
 //  ConnectionPool pool = ConnectionPool("dbname=pexaconnect_app user=pexaconnect_app password=pexaconnect_app");
