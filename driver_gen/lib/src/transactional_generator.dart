@@ -1,13 +1,11 @@
 import 'dart:async';
 
-import 'package:analyzer/analyzer.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:build/build.dart';
 import 'package:built_collection/built_collection.dart';
-import 'package:postgres_driver/postgres_driver.dart';
-import 'package:postgres_driver_gen/src/helpers.dart';
-import 'package:source_gen/source_gen.dart';
 import 'package:code_builder/code_builder.dart' as code;
+import 'package:postgres_driver/postgres_driver.dart';
+import 'package:source_gen/source_gen.dart';
 
 TypeChecker _transactionalClassChecker = TypeChecker.fromRuntime(Transactional);
 TypeChecker _transactionChecker = TypeChecker.fromRuntime(Transaction);
@@ -70,7 +68,7 @@ class TransactionalGenerator extends Generator {
   code.Parameter _buildMethodParam(ParameterElement param) {
     return code.Parameter((b) => b
       ..name = param.name
-      ..type = code.refer(findParameterTypeName(param))
+      ..type = code.refer(param.type.name)
       ..named = param.isNamed);
   }
 
