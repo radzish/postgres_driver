@@ -68,7 +68,7 @@ class TransactionalGenerator extends Generator {
   code.Parameter _buildMethodParam(ParameterElement param) {
     return code.Parameter((b) => b
       ..name = param.name
-      ..type = code.refer(param.type.name)
+      ..type = code.refer(param.type.toString())
       ..named = param.isNamed);
   }
 
