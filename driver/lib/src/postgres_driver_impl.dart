@@ -12,6 +12,8 @@ const String _parameterNamePrefix = "@";
 const String _paramNameRegexString = "[a-zA-Z0-9_]+";
 final RegExp _paramNameRegexp = RegExp("^$_paramNameRegexString\$");
 final RegExp _paramTemplateRegexp = RegExp("$_parameterNamePrefix($_paramNameRegexString)");
+final RegExp _paramInTemplateRegexp =
+    RegExp("\\s+in\\s*\\($_parameterNamePrefix($_paramNameRegexString)\\)", caseSensitive: false);
 
 class ResultSet {
   final DynamicLibrary _dylib;
@@ -296,24 +298,53 @@ class PGConnection {
 
     _validateParamNames(values);
 
-    String rawQuery = query.replaceAllMapped(_paramTemplateRegexp, (match) {
-      String param = match.group(1);
-      int position = paramPositions.putIfAbsent(param, () => paramPositions.length);
-      return "\$${position + 1}";
-    });
+    int paramsNumber = 0;
+
+    // first handle "in (@param)" params
+    String rawQuery = query.replaceAllMapped(
+      _paramInTemplateRegexp,
+      (match) {
+        String param = match.group(1);
+        // as this is a query, taking first line of values only
+        final listValue = values.first[param] as List;
+        int position = paramPositions.putIfAbsent(param, () => paramsNumber);
+        paramsNumber += listValue.length;
+        final parameterPlaceholders = Iterable.generate(listValue.length, (i) => "\$${position + 1 + i}").join(",");
+        return " in(${parameterPlaceholders})";
+      },
+    );
+
+    // then handle all other params
+    rawQuery = rawQuery.replaceAllMapped(
+      _paramTemplateRegexp,
+      (match) {
+        String param = match.group(1);
+        int position = paramPositions.putIfAbsent(param, () => paramsNumber++);
+        return "\$${position + 1}";
+      },
+    );
 
     Iterable<List<String>> rawValues = values != null
-        ? values.map((rowValues) {
-            List<String> rowValuesList = List<String>(paramPositions.length);
+        ? values.map(
+            (rowValues) {
+              List<String> rowValuesList = List<String>(paramsNumber);
 
-            paramPositions.forEach((param, position) {
-              dynamic value = rowValues[param];
-              String rawValue = _valueToString(value);
-              rowValuesList[position] = rawValue;
-            });
+              paramPositions.forEach((param, position) {
+                dynamic value = rowValues[param];
+                if (value is List) {
+                  for (int i = 0; i < value.length; i++) {
+                    String rawValue = _valueToString(value[i]);
+                    rowValuesList[position + i] = rawValue;
+                  }
+                } else {
+                  String rawValue = _valueToString(value);
+                  rowValuesList[position] = rawValue;
+                }
+              });
 
-            return rowValuesList;
-          })
+              return rowValuesList;
+            },
+          )
         : [];
 
     return _RawQuery(rawQuery, rawValues);
