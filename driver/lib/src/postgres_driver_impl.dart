@@ -236,7 +236,7 @@ class PGConnection {
   }
 
   Future<ResultSet> select(String query, {Map<String, dynamic> params}) async {
-    return await execute(query, [params]);
+    return await execute(query, params != null && params.isNotEmpty ? [params] : null);
   }
 
   Future<void> insert(String table, Map<String, dynamic> record) async {

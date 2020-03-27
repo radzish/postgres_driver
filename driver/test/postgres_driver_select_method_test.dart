@@ -40,4 +40,15 @@ void main() {
       {"id": 0, "name": "name0"},
     ]);
   });
+
+  test("select should work with no named parameters", () async {
+    await _testInsert(conn);
+
+    rs = await conn.select("select id, name from test_table order by id");
+
+    expect(rs.rowMaps, [
+      {"id": 0, "name": "name0"},
+      {"id": 1, "name": "name1"},
+    ]);
+  });
 }
