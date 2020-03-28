@@ -182,17 +182,16 @@ class PGConnection {
 
   int _transactionLevel = 0;
 
-  factory PGConnection(String connectionString) {
-    _initDynlib();
+  factory PGConnection(String connectionString, {String driverPath = "./postgres-driver.so"}) {
+    _initDynlib(driverPath);
     return PGConnection._(connectionString);
   }
 
   PGConnection._(this.connectionString);
 
-  static void _initDynlib() {
+  static void _initDynlib(String driverPath) {
     if (_dylib == null) {
-      String path = "./postgres-driver.so";
-      _dylib = DynamicLibrary.open(path);
+      _dylib = DynamicLibrary.open(driverPath);
     }
   }
 
