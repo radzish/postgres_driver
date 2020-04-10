@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:core';
 import 'dart:ffi';
 
+import 'package:db_context_lib/db_context_lib.dart';
 import 'package:ffi/ffi.dart';
 
 const int _pgTypeInt0 = 20;
@@ -422,4 +423,35 @@ class _RawQuery {
   final Iterable<List<String>> values;
 
   _RawQuery(this.query, this.values);
+}
+
+class PGConnectionManager implements ConnectionManager<PGConnection> {
+  final String connectionString;
+
+  PGConnectionManager(this.connectionString);
+
+  @override
+  Future<PGConnection> create() async {
+    PGConnection connection = PGConnection(connectionString);
+
+    try {
+      await connection.open();
+    } catch (e) {
+      throw "Can not open DB connection: ${e}";
+    }
+
+    return connection;
+  }
+
+  @override
+  Future<void> beginTransaction(PGConnection conn) => conn.begin();
+
+  @override
+  Future<void> commitTransaction(PGConnection conn) => conn.commit();
+
+  @override
+  Future<void> rollbackTransaction(PGConnection conn) => conn.rollback();
+
+  @override
+  bool isValid(PGConnection conn) => !conn.isClosed;
 }
