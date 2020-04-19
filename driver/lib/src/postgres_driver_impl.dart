@@ -1,9 +1,12 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:core';
 import 'dart:ffi';
 
 import 'package:db_context_lib/db_context_lib.dart';
 import 'package:ffi/ffi.dart';
+
+const _delayIncrement = 10;
 
 const int _pgTypeInt0 = 20;
 const int _pgTypeInt1 = 23;
@@ -125,6 +128,10 @@ class RawResultSet extends Struct {
   }
 }
 
+class SendQueryResult extends Struct {
+  Pointer<Utf8> error;
+}
+
 dynamic _stringToValue(int valueType, String valueString) {
   if (valueString == null) {
     return null;
@@ -164,13 +171,13 @@ typedef CloseConnection = void Function(Pointer<Int32> connection);
 typedef close_result_set_func = Void Function(Pointer<RawResultSet> resultSet);
 typedef CloseResultSet = void Function(Pointer<RawResultSet> resultSet);
 
-typedef perform_query_func = Pointer<RawResultSet> Function(Pointer<Int32> connection, Pointer<Utf8> query,
+typedef send_query_func = Pointer<SendQueryResult> Function(Pointer<Int32> connection, Pointer<Utf8> query,
     Int32 paramCount, Pointer<Pointer<Utf8>> paramValues, Int32 reconnect);
-typedef PerformQuery = Pointer<RawResultSet> Function(
+typedef SendQuery = Pointer<SendQueryResult> Function(
     Pointer<Int32> connection, Pointer<Utf8> query, int paramCount, Pointer<Pointer<Utf8>> paramValues, int reconnect);
 
-typedef test_func = Pointer<RawResultSet> Function();
-typedef Test = Pointer<RawResultSet> Function();
+typedef get_result_func = Pointer<RawResultSet> Function(Pointer<Int32> connection);
+typedef GetResult = Pointer<RawResultSet> Function(Pointer<Int32> connection);
 
 class PGConnection {
   static DynamicLibrary _dylib;
@@ -182,6 +189,8 @@ class PGConnection {
   bool _closed = false;
 
   int _transactionLevel = 0;
+
+  bool _queryInProgress = false;
 
   factory PGConnection(String connectionString, {String driverPath = "./postgres-driver.so"}) {
     _initDynlib(driverPath);
@@ -206,29 +215,106 @@ class PGConnection {
 
   Future<ResultSet> execute(String query, [List<Map<String, dynamic>> values]) async {
     _RawQuery rawQuery = _prepareQuery(query, values);
-    final PerformQuery performQuery = _dylib.lookup<NativeFunction<perform_query_func>>("perform_query").asFunction();
 
     // case for query with no params
     if (rawQuery.values.isEmpty) {
-      Pointer<RawResultSet> result = performQuery(_conn, Utf8.toUtf8(rawQuery.query), 0, _toValuesArray([]), 1);
-      if (result.ref.error.address != 0) {
-        throw _extractError(result.ref.error);
-      }
-      return ResultSet(_dylib, [result.ref]);
+      RawResultSet rawResultSet = await _executeNativeQuery(rawQuery.query);
+      return ResultSet(_dylib, [rawResultSet]);
     }
 
     // case for query with params
-    List<RawResultSet> rawResults = rawQuery.values.map((rowValues) {
-      Pointer<RawResultSet> result =
-          performQuery(_conn, Utf8.toUtf8(rawQuery.query), rowValues.length, _toValuesArray(rowValues), 1);
-      RawResultSet rawResultSet = result.ref;
-      if (rawResultSet.error.address != 0) {
-        throw _extractError(rawResultSet.error);
-      }
-      return rawResultSet;
-    }).toList();
+    List<RawResultSet> rawResults = [];
+    for (List<String> rowValues in rawQuery.values) {
+      RawResultSet rawResultSet = await _executeNativeQuery(rawQuery.query, rowValues);
+      rawResults.add(rawResultSet);
+    }
 
     return ResultSet(_dylib, rawResults);
+  }
+
+  Queue<_QueuedQuery> _queue = Queue<_QueuedQuery>();
+
+  Future<RawResultSet> _executeNativeQuery(String query, [List<String> rowValues]) {
+    final completer = Completer<RawResultSet>();
+
+    _QueuedQuery _queuedQuery = _QueuedQuery(query, rowValues, completer);
+    _queue.addFirst(_queuedQuery);
+
+    _processNextQuery();
+
+    return completer.future;
+  }
+
+  Future<void> _processNextQuery() async {
+    if (_queue.isEmpty) {
+      return;
+    }
+
+    if (_queryInProgress) {
+      return;
+    }
+
+    _QueuedQuery _lastQuery = _queue.last;
+    try {
+      _queryInProgress = true;
+
+      _sendQuery(_lastQuery.query, _lastQuery.rowValues);
+      RawResultSet rawResultSet = await _getResult();
+      _lastQuery.completer.complete(rawResultSet);
+    } catch (e) {
+      _lastQuery.completer.completeError(e);
+    } finally {
+      _queryInProgress = false;
+      _queue.removeLast();
+      await _processNextQuery();
+    }
+  }
+
+  Future<RawResultSet> _getResult() async {
+    RawResultSet rawResultSet;
+    int delay = 0;
+
+    while (true) {
+      RawResultSet currentRawResultSet = await Future<RawResultSet>.delayed(Duration(milliseconds: delay), () {
+        final GetResult getResult = _dylib.lookup<NativeFunction<get_result_func>>("get_result").asFunction();
+        Pointer<RawResultSet> result = getResult(_conn);
+
+        if (result.address == 0) {
+          return null;
+        }
+
+        RawResultSet rawResultSet = result.ref;
+        if (rawResultSet.error.address != 0) {
+          throw _extractError(rawResultSet.error);
+        }
+
+        return rawResultSet;
+      });
+
+      if (currentRawResultSet == null) {
+        break;
+      }
+
+      if (rawResultSet != null) {
+        rawResultSet.close(_dylib);
+      }
+
+      rawResultSet = currentRawResultSet;
+
+      delay += _delayIncrement;
+    }
+
+    return rawResultSet;
+  }
+
+  void _sendQuery(String query, List<String> rowValues) {
+    final SendQuery sendQuery = _dylib.lookup<NativeFunction<send_query_func>>("send_query").asFunction();
+    Pointer<SendQueryResult> sendQueryResultPointer =
+        sendQuery(_conn, Utf8.toUtf8(query), rowValues?.length ?? 0, _toValuesArray(rowValues ?? []), 1);
+    SendQueryResult sendQueryResult = sendQueryResultPointer.ref;
+    if (sendQueryResult.error.address != 0) {
+      throw _extractError(sendQueryResult.error);
+    }
   }
 
   String _extractError(Pointer<Utf8> errorPointer) {
@@ -454,4 +540,12 @@ class PGConnectionManager implements ConnectionManager<PGConnection> {
 
   @override
   bool isValid(PGConnection conn) => !conn.isClosed;
+}
+
+class _QueuedQuery {
+  final String query;
+  final List<String> rowValues;
+  final Completer<RawResultSet> completer;
+
+  _QueuedQuery(this.query, this.rowValues, this.completer);
 }

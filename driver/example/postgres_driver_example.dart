@@ -1,46 +1,33 @@
 import 'package:postgres_driver/postgres_driver.dart';
+import 'package:process_run/shell.dart';
 
 main() async {
-//  ConnectionPool pool = ConnectionPool("dbname=pexaconnect_app user=pexaconnect_app password=pexaconnect_app");
-//  Connection pooledConnection = await pool.open();
-//
-//  ResultSet rs = await pooledConnection.connection.execute(
-//      "SELECT id, name, tagline, logo is not null as has_logo FROM company  WHERE  name ~* CONCAT('(^|[\s])(','a'::varchar,')') ");
-//
-//  print(rs.columnNames);
-//  print(rs.columnTypes);
-//  print(rs.rows);
-//  print(rs.rowsMap);
-//
-//  rs.close();
-//
-//  await pooledConnection.release();
+  await Shell(workingDirectory: "./c").run("make so");
 
   PGConnection conn = PGConnection("dbname=postgres_dart_test user=postgres_dart_test password=postgres_dart_test");
   await conn.open();
+  print("${time()} db call 1 started ... ");
 
-  ResultSet rs = await conn.execute('''
-        drop table if exists test_table
-      ''');
-  rs.close();
-//
-//  rs = await conn.execute('''
-//        create table test_table(
-//          id int primary key,
-//          update_time timestamp
-//        )
-//      ''');
-//  rs.close();
-//
-//  rs = await conn.select("select update_time from test_table", params: {});
-//  rs.close();
+  conn.execute('''
+        select pg_sleep(5)
+      ''').then((_) {
+    print("${time()} db result 1 complete");
+  });
 
-//  print("${rs.rows}");
+  print("${time()} db call 2 started ... ");
 
-//  (await conn.execute('''
-//        create table test_table(
-//          id int primary key,
-//          update_time timestamp
-//        )
-//      ''')).close();
+  conn.execute('''
+        select pg_sleep(10)
+      ''').then((_) {
+    print("${time()} db result 2 complete");
+  });
+
+  print("${time()} calculations started ...");
+
+  print("${time()} calculations complete");
+}
+
+String time() {
+  final now = DateTime.now();
+  return "${now.hour}:${now.minute}:${now.second}";
 }
