@@ -5,11 +5,6 @@ void main() {
   PGConnection conn;
   ResultSet rs;
 
-  List<Map<String, dynamic>> _testValues = [
-    {"id": 0, "name": "name0"},
-    {"id": 1, "name": "name1"}
-  ];
-
   setUp(() async {
     conn = PGConnection("dbname=postgres_dart_test user=postgres_dart_test password=postgres_dart_test");
 

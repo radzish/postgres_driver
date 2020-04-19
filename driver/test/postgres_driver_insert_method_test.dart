@@ -48,7 +48,7 @@ void main() {
 
   test("insert should add multiple records combining different keys", () async {
     (await conn.execute('''
-        drop table test_table_diff_keys
+        drop table if exists test_table_diff_keys
       ''')).close();
 
     (await conn.execute('''
