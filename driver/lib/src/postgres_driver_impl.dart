@@ -6,8 +6,6 @@ import 'dart:ffi';
 import 'package:db_context_lib/db_context_lib.dart';
 import 'package:ffi/ffi.dart';
 
-const _delayIncrement = 10;
-
 const int _pgTypeInt0 = 20;
 const int _pgTypeInt1 = 23;
 const int _pgTypeVarchar = 1024;
@@ -194,6 +192,9 @@ typedef SendQuery = Pointer<SendQueryResult> Function(
 typedef get_result_func = Pointer<RawResultSet> Function(Pointer<Int32> connection);
 typedef GetResult = Pointer<RawResultSet> Function(Pointer<Int32> connection);
 
+typedef test_func = Void Function(Pointer<Int32> connection);
+typedef TestFunc = void Function(Pointer<Int32> connection);
+
 class PGConnection {
   static DynamicLibrary _dylib;
 
@@ -287,10 +288,8 @@ class PGConnection {
 
   Future<RawResultSet> _getResult() async {
     RawResultSet rawResultSet;
-    int delay = 0;
-
     while (true) {
-      RawResultSet currentRawResultSet = await Future<RawResultSet>.delayed(Duration(milliseconds: delay), () {
+      RawResultSet currentRawResultSet = await Future<RawResultSet>.delayed(Duration(milliseconds: 3), () {
         final GetResult getResult = _dylib.lookup<NativeFunction<get_result_func>>("get_result").asFunction();
         Pointer<RawResultSet> result = getResult(_conn);
 
@@ -315,8 +314,6 @@ class PGConnection {
       }
 
       rawResultSet = currentRawResultSet;
-
-      delay += _delayIncrement;
     }
 
     return rawResultSet;
@@ -516,6 +513,11 @@ class PGConnection {
     if (!_paramNameRegexp.hasMatch(key)) {
       throw "param name \"$key\" invalid";
     }
+  }
+
+  void testFunc() {
+    final TestFunc testFunc = _dylib.lookup<NativeFunction<test_func>>("test_func").asFunction();
+    testFunc(_conn);
   }
 }
 
