@@ -104,7 +104,7 @@ class RawResultSet extends Struct {
   List<Map<String, dynamic>> get rowsMap {
     List<Map<String, dynamic>> result = List<Map<String, dynamic>>(rowsNumber);
     for (int row = 0; row < rowsNumber; row++) {
-      result[row] = {};
+      result[row] = null;
       Pointer<Pointer<Utf8>> rowPtr = _rows[row];
       for (int col = 0; col < columnsNumber; col++) {
         Pointer<Utf8> valuePtr = rowPtr[col];
@@ -114,7 +114,22 @@ class RawResultSet extends Struct {
           dynamic value = _stringToValue(valueType, valueString);
           Pointer<Utf8> columnNamePtr = _columnNames[col];
           String columnName = Utf8.fromUtf8(columnNamePtr);
-          result[row][columnName] = value;
+
+          final nameParts = columnName.split("\.");
+
+          result[row] ??= {};
+          Map<String, dynamic> curMap = result[row];
+
+          for (int i = 0; i < nameParts.length; i++) {
+            final namePart = nameParts[i];
+            if (i < nameParts.length - 1) {
+              curMap[namePart] ??= Map<String, dynamic>();
+              curMap = curMap[namePart];
+            } else {
+              // last part, just assign value
+              curMap[namePart] = value;
+            }
+          }
         }
       }
     }
