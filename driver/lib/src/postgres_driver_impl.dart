@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
+import 'dart:convert';
 import 'dart:core';
 import 'dart:ffi';
 
@@ -13,6 +14,7 @@ const int _pgTypeVarchar = 1024;
 const int _pgTypeTimestamp = 1114;
 const int _pgTypeDate = 1184;
 const int _pgTypeDoublePrecision = 701;
+const int _pgTypeJson = 114;
 
 const String _parameterNamePrefix = "@";
 const String _paramNameRegexString = "[a-zA-Z0-9_]+";
@@ -168,13 +170,25 @@ dynamic _stringToValue(int valueType, String valueString) {
       return valueString;
     case _pgTypeDoublePrecision: //date
       return double.parse(valueString);
+    case _pgTypeJson:
+      return jsonDecode(valueString);
   }
+
   return valueString;
 }
 
 String _valueToString(dynamic value) {
   if (value == null) {
     return null;
+  }
+
+  if (value is Map) {
+    return jsonEncode(value);
+  }
+
+  // we treat all lists as json arrays
+  if (value is List) {
+    return jsonEncode(value);
   }
 
   //TODO: implement!!!!
@@ -400,6 +414,8 @@ class PGConnection {
   _RawQuery _prepareQuery(String query, [List<Map<String, dynamic>> values]) {
     Map<String, int> paramPositions = {};
 
+    int inParamNumber = 0;
+
     _validateParamNames(values);
 
     int paramsNumber = 0;
@@ -418,6 +434,8 @@ class PGConnection {
       },
     );
 
+    inParamNumber = paramsNumber;
+
     // then handle all other params
     rawQuery = rawQuery.replaceAllMapped(
       _paramTemplateRegexp,
@@ -435,7 +453,11 @@ class PGConnection {
 
               paramPositions.forEach((param, position) {
                 dynamic value = rowValues[param];
-                if (value is List) {
+                // we treat List params as IN only in case if they are indeed in,
+                // otherwise list params should be handled regularly
+                // TODO: introduce dedicated class for IN params so we do not have
+                // ambiguity with Lists
+                if (value is List && position <= inParamNumber) {
                   for (int i = 0; i < value.length; i++) {
                     String rawValue = _valueToString(value[i]);
                     rowValuesList[position + i] = rawValue;
