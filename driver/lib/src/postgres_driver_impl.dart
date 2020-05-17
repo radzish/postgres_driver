@@ -6,9 +6,13 @@ import 'dart:ffi';
 import 'package:db_context_lib/db_context_lib.dart';
 import 'package:ffi/ffi.dart';
 
+const int _pgTypeBool = 16;
 const int _pgTypeInt0 = 20;
 const int _pgTypeInt1 = 23;
 const int _pgTypeVarchar = 1024;
+const int _pgTypeTimestamp = 1114;
+const int _pgTypeDate = 1184;
+const int _pgTypeDoublePrecision = 701;
 
 const String _parameterNamePrefix = "@";
 const String _paramNameRegexString = "[a-zA-Z0-9_]+";
@@ -151,17 +155,19 @@ dynamic _stringToValue(int valueType, String valueString) {
   }
 
   switch (valueType) {
-    case 16:
+    case _pgTypeBool:
       return valueString == "t";
     case _pgTypeInt0:
     case _pgTypeInt1:
       return int.parse(valueString);
     case _pgTypeVarchar:
       return valueString;
-    case 1114: //timestamp
+    case _pgTypeTimestamp: //timestamp
       return DateTime.parse("${valueString}Z");
-    case 1184: //date
+    case _pgTypeDate: //date
       return valueString;
+    case _pgTypeDoublePrecision: //date
+      return double.parse(valueString);
   }
   return valueString;
 }

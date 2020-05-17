@@ -17,7 +17,8 @@ void main() {
     (await conn.execute('''
         create table test_table(
           id int primary key,
-          update_time timestamp
+          update_time timestamp,
+          double_value double precision
         )
       ''')).close();
   });
@@ -36,6 +37,17 @@ void main() {
 
     expect(rs.rowMaps, [
       {"update_time": time}
+    ]);
+  });
+
+  test("double data should be properly inserted and selected", () async {
+    double doubleValue = 0.1;
+    await conn.insert("test_table", {"id": 0, "double_value": doubleValue});
+
+    rs = await conn.select("select double_value from test_table", params: {});
+
+    expect(rs.rowMaps, [
+      {"double_value": doubleValue}
     ]);
   });
 }
