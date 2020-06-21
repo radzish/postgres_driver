@@ -72,4 +72,17 @@ void main() {
       {"id": 1, "name": "name1"}
     ]);
   });
+
+  test("update should update table with null values", () async {
+    await conn.insertMultiple("test_table", _testValues);
+
+    Map<String, dynamic> updateValue = {"name": null};
+    await conn.update("test_table", updateValue, criteria: "id = @id", criteriaParams: {"id": 0});
+
+    rs = await conn.execute("select id, name from test_table order by id");
+    expect(rs.rowMaps, [
+      {"id": 0},
+      {"id": 1, "name": "name1"}
+    ]);
+  });
 }
