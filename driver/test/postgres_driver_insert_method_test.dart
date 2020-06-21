@@ -11,7 +11,7 @@ void main() {
   ];
 
   setUp(() async {
-    conn = PGConnection("dbname=postgres_dart_test user=postgres_dart_test password=postgres_dart_test");
+    conn = PGConnection("host=localhost dbname=postgres_dart_test user=postgres_dart_test password=postgres_dart_test");
 
     await conn.open();
 

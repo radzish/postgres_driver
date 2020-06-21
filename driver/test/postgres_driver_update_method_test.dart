@@ -1,6 +1,8 @@
 import 'package:postgres_driver/postgres_driver.dart';
 import 'package:test/test.dart';
 
+import 'stuff.dart';
+
 void main() {
   PGConnection conn;
   ResultSet rs;
@@ -11,7 +13,7 @@ void main() {
   ];
 
   setUp(() async {
-    conn = PGConnection("dbname=postgres_dart_test user=postgres_dart_test password=postgres_dart_test");
+    conn = createConnection();
 
     await conn.open();
 

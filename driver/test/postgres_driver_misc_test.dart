@@ -2,9 +2,11 @@ import 'package:postgres_driver/postgres_driver.dart';
 import 'package:process_run/shell.dart';
 import 'package:test/test.dart';
 
+import 'stuff.dart';
+
 void main() {
   test("closing closed connection must not crash", () async {
-    PGConnection conn = PGConnection("dbname=postgres_dart_test user=postgres_dart_test password=postgres_dart_test");
+    PGConnection conn = createConnection();
 
     await conn.open();
 
@@ -15,7 +17,7 @@ void main() {
   });
 
   test("bad connection should be recovered", () async {
-    PGConnection conn = PGConnection("dbname=postgres_dart_test user=postgres_dart_test password=postgres_dart_test");
+    PGConnection conn = createConnection();
 
     await conn.open();
 
@@ -37,7 +39,7 @@ void main() {
   });
 
   test("closed connection from outside should be recovered", () async {
-    PGConnection conn = PGConnection("dbname=postgres_dart_test user=postgres_dart_test password=postgres_dart_test");
+    PGConnection conn = createConnection();
 
     await conn.open();
 
