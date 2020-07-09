@@ -4,30 +4,23 @@ import 'package:process_run/shell.dart';
 main() async {
   await Shell(workingDirectory: "./c").run("make so");
 
-  PGConnection conn = PGConnection("dbname=postgres_dart_test user=postgres_dart_test password=postgres_dart_test");
+  PGConnection conn = PGConnection("dbname=postgres_dart_test user=postgres_dart_test password=postgres_dart_test host=localhost");
   await conn.open();
-  print("${time()} db call 1 started ... ");
 
-  conn.execute('''
-        select pg_sleep(5)
-      ''').then((_) {
-    print("${time()} db result 1 complete");
-  });
+  await conn.open();
 
-  print("${time()} db call 2 started ... ");
+  await conn.execute("select 1");
 
-  conn.execute('''
-        select pg_sleep(10)
-      ''').then((_) {
-    print("${time()} db result 2 complete");
-  });
+  // restarting server -> connection is closed
+  try {
+    await Shell().run("sudo service postgresql-9.6 restart");
+  } catch (e) {
+    //ignoring
+  }
 
-  print("${time()} calculations started ...");
+  // on this call connection should be recovered
+  ResultSet rs = await conn.select("select 1", params: {});
+  await conn.close();
 
-  print("${time()} calculations complete");
-}
-
-String time() {
-  final now = DateTime.now();
-  return "${now.hour}:${now.minute}:${now.second}";
+  print("OK");
 }

@@ -9,19 +9,7 @@ void main() {
 
   setUp(() async {
     conn = createConnection();
-
     await conn.open();
-
-    (await conn.execute('''
-        drop table if exists test_table
-      ''')).close();
-
-    (await conn.execute('''
-        create table test_table(
-          id int primary key,
-          name varchar
-        )
-      ''')).close();
   });
 
   tearDown(() async {
@@ -33,5 +21,14 @@ void main() {
     expect(() async {
       await conn.execute("select invalid query");
     }, throwsA(anything));
+  });
+
+  test("execute should work after failed invalid query on same connection", () async {
+    try {
+      await conn.execute("select invalid query");
+    } catch (_) {}
+
+    final rs = await conn.select("select 1");
+    expect(rs.rows.first.first, 1);
   });
 }

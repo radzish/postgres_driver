@@ -47,7 +47,7 @@ void main() {
 
     // restarting server -> connection is closed
     try {
-      await Shell().run("sudo service postgresql restart");
+      await Shell().run("sudo service postgresql-9.6 restart");
     } catch (e) {
       //ignoring
     }

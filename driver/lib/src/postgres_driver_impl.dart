@@ -544,7 +544,7 @@ class PGConnection {
   }
 
   void testFunc() {
-    final TestFunc testFunc = _dylib.lookup<NativeFunction<test_func>>("test_func").asFunction();
+    final TestFunc testFunc = _dylib.lookup<NativeFunction<test_func>>("test").asFunction();
     testFunc(_conn);
   }
 }
