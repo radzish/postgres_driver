@@ -154,14 +154,10 @@ ResultSet* get_result(PGconn*  conn) {
     return NULL;
   }
 
-  printf("GET RESULT 0\n");fflush(stdout);
-
   char* error = PQresultErrorMessage(res);
   if(error[0] != '\0') {
 
     while(PQconsumeInput(conn) && PQisBusy(conn));
-
-    printf("GET RESULT 2\n");fflush(stdout);
 
     PQclear(resultSet->res);
     resultSet->error = error;
