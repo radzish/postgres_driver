@@ -15,6 +15,7 @@ const int _pgTypeTimestamp = 1114;
 const int _pgTypeDate = 1184;
 const int _pgTypeDoublePrecision = 701;
 const int _pgTypeJson = 114;
+const int _pgTypeJsonb = 3802;
 
 const String _parameterNamePrefix = "@";
 const String _paramNameRegexString = "[a-zA-Z0-9_]+";
@@ -171,6 +172,7 @@ dynamic _stringToValue(int valueType, String valueString) {
     case _pgTypeDoublePrecision: //date
       return double.parse(valueString);
     case _pgTypeJson:
+    case _pgTypeJsonb:
       return jsonDecode(valueString);
   }
 

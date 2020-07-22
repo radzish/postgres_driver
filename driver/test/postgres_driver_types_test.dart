@@ -21,7 +21,9 @@ void main() {
           id int primary key,
           update_time timestamp,
           double_value double precision,
-          json_object json
+          json_object json,
+          jsonb_object jsonb,
+          boolean_value boolean 
         )
       ''')).close();
   });
@@ -112,4 +114,64 @@ void main() {
       {"json_object": jsonObjectArray}
     ]);
   });
+
+  test("jsonb object should be properly inserted and selected", () async {
+    Map<String, dynamic> jsonObject = {
+      "stringValue": "a",
+      "intValue": 0,
+      "boolValue": true,
+      "doubleValue": 0.1,
+      "innerObject": {
+        "innerValue": "innerValue",
+      }
+    };
+
+    await conn.insert("test_table", {"id": 0, "jsonb_object": jsonObject});
+
+    rs = await conn.select("select jsonb_object from test_table");
+
+    expect(rs.rowMaps, [
+      {"jsonb_object": jsonObject}
+    ]);
+  });
+
+  test("jsonb object array should be properly inserted and selected", () async {
+    List<Map<String, dynamic>> jsonObjectArray = [
+      {
+        "stringValue": "a",
+        "intValue": 0,
+        "boolValue": true,
+        "doubleValue": 0.1,
+        "innerObject": {
+          "innerValue": "innerValue",
+        }
+      },
+    ];
+
+    await conn.insert("test_table", {"id": 0, "jsonb_object": jsonObjectArray});
+
+    rs = await conn.select("select jsonb_object from test_table");
+
+    expect(rs.rowMaps, [
+      {"jsonb_object": jsonObjectArray}
+    ]);
+  });
+
+  test("jsonb object array of simple values should be properly inserted and selected", () async {
+    List<dynamic> jsonObjectArray = [
+      "a",
+      0,
+      true,
+      0.1,
+    ];
+
+    await conn.insert("test_table", {"id": 0, "jsonb_object": jsonObjectArray});
+
+    rs = await conn.select("select jsonb_object from test_table");
+
+    expect(rs.rowMaps, [
+      {"jsonb_object": jsonObjectArray}
+    ]);
+  });
+
 }
