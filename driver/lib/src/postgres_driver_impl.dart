@@ -587,6 +587,9 @@ class PGConnectionManager implements ConnectionManager<PGConnection> {
 
   @override
   bool isValid(PGConnection conn) => !conn.isClosed;
+
+  @override
+  Future<void> close(PGConnection conn) => conn.close();
 }
 
 class _QueuedQuery {
