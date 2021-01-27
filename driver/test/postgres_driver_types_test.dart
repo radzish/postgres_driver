@@ -174,4 +174,40 @@ void main() {
     ]);
   });
 
+  test("jsonb object array of json objects should be properly inserted and selected", () async {
+    List<dynamic> jsonObjectArray = [
+      {"a": 0},
+      {"b": 1},
+    ];
+
+    await conn.insert("test_table", {"id": 0, "jsonb_object": jsonObjectArray});
+
+    rs = await conn.select("select jsonb_object from test_table");
+
+    expect(rs.rowMaps, [
+      {"jsonb_object": jsonObjectArray}
+    ]);
+  });
+
+  test("jsonb object with array of json objects should be properly updated", () async {
+    await conn.insert("test_table", {"id": 0});
+
+    List<dynamic> array = [
+      {"id": "0"},
+      {"id": "1"},
+      {"id": "2"},
+    ];
+
+    Map<String, dynamic> jsonObject = {
+      "jsonb_object": array,
+      "id": "0",
+    };
+
+    await conn.update("test_table", jsonObject, criteria: "id = @id", criteriaParams: {"id": "0"});
+
+    rs = await conn.select("select jsonb_object from test_table");
+    expect(rs.rowMaps, [
+      {"jsonb_object": array}
+    ]);
+  });
 }

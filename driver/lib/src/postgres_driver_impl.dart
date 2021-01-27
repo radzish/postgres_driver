@@ -377,6 +377,7 @@ class PGConnection {
     } else {
       params = updateParams;
     }
+    //TODO: https://github.com/radzish/postgres_driver/issues/29
     await execute(_prepareUpdateQuery(table, params.keys, criteria), [params]);
   }
 
@@ -459,7 +460,7 @@ class PGConnection {
                 // otherwise list params should be handled regularly
                 // TODO: introduce dedicated class for IN params so we do not have
                 // ambiguity with Lists
-                if (value is List && position <= inParamNumber) {
+                if (value is List && position < inParamNumber) {
                   for (int i = 0; i < value.length; i++) {
                     String rawValue = _valueToString(value[i]);
                     rowValuesList[position + i] = rawValue;

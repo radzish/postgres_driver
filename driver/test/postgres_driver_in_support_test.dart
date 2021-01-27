@@ -86,6 +86,21 @@ void main() {
     ]);
   });
 
+  test("in with single value should be properly handled on select", () async {
+    await conn.insert("test_table", {"id": 0, "name": "item0"});
+
+    rs = await conn.select(
+      "select name from test_table where name in (@names) order by name",
+      params: {
+        "names": ["item0"]
+      },
+    );
+
+    expect(rs.rowMaps, [
+      {"name": "item0"},
+    ]);
+  });
+
   test("multiple 'in' in combination with other criterias should be properly handled on select", () async {
     await conn.insert("test_table", {"id": 0, "name": "item0", "description": "desc0"});
     await conn.insert("test_table", {"id": 1, "name": "item1", "description": "desc0"});
