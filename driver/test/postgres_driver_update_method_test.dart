@@ -34,7 +34,7 @@ void main() {
     await conn.close();
   });
 
-  test("update should update table values with no critera", () async {
+  test("update should update table values with no criteria", () async {
     await conn.insertMultiple("test_table", _testValues);
 
     Map<String, dynamic> updateValue = {"name": "nameUpdated"};
