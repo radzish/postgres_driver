@@ -387,20 +387,20 @@ class PGConnection {
 
   Future<void> begin() async {
     if (_transactionLevel++ == 0) {
-      print("beginning transaction ...");
+      print("beginning transaction: ${hashCode} ...");
       await execute("BEGIN");
     }
   }
 
   Future<void> commit() async {
     if (--_transactionLevel == 0) {
-      print("committing transaction ...");
+      print("committing transaction: ${hashCode} ...");
       await execute("COMMIT");
     }
   }
 
   Future<void> rollback() async {
-    print("rolling back transaction ...");
+    print("rolling back transaction: ${hashCode} ...");
     await execute("ROLLBACK");
     _transactionLevel = 0;
   }
