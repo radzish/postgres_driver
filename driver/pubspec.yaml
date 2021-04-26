@@ -5,10 +5,10 @@ description: A starting point for Dart libraries or applications.
 # author: kernel <email@example.com>
 
 environment:
-  sdk: '>=2.6.0 <3.0.0'
+  sdk: '>=2.10.4 <3.0.0'
 
 dependencies:
-  ffi: ^0.1.3
+  ffi: 1.0.0
   resource_pool:
     git: https://github.com/radzish/resource_pool.git
   db_context_lib:

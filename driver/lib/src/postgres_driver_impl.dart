@@ -82,7 +82,7 @@ class RawResultSet extends Struct {
     List<String> result = List<String>(columnsNumber);
     for (int col = 0; col < columnsNumber; col++) {
       Pointer<Utf8> columnNamePtr = _columnNames[col];
-      String columnName = Utf8.fromUtf8(columnNamePtr);
+      String columnName = columnNamePtr.toDartString();
       result[col] = columnName;
     }
     return result;
@@ -97,7 +97,7 @@ class RawResultSet extends Struct {
         int valueType = _columnTypes[col];
         Pointer<Utf8> valuePtr = rowPtr[col];
         if (valuePtr.address != 0) {
-          String rawValue = Utf8.fromUtf8(valuePtr);
+          String rawValue = valuePtr.toDartString();
           dynamic value = _stringToValue(valueType, rawValue);
           result[row][col] = value;
         }
@@ -115,10 +115,10 @@ class RawResultSet extends Struct {
         Pointer<Utf8> valuePtr = rowPtr[col];
         if (valuePtr.address != 0) {
           int valueType = _columnTypes[col];
-          String valueString = Utf8.fromUtf8(valuePtr);
+          String valueString = valuePtr.toDartString();
           dynamic value = _stringToValue(valueType, valueString);
           Pointer<Utf8> columnNamePtr = _columnNames[col];
-          String columnName = Utf8.fromUtf8(columnNamePtr);
+          String columnName = columnNamePtr.toDartString();
 
           final nameParts = columnName.split("\.");
 
@@ -248,7 +248,7 @@ class PGConnection {
   Future<void> open() async {
     final OpenConnection openConnection =
         _dylib.lookup<NativeFunction<open_connection_func>>("open_connection").asFunction();
-    _conn = openConnection(Utf8.toUtf8(connectionString));
+    _conn = openConnection(connectionString.toNativeUtf8());
   }
 
   Future<ResultSet> execute(String query, [List<Map<String, dynamic>> values]) async {
@@ -344,7 +344,7 @@ class PGConnection {
   void _sendQuery(String query, List<String> rowValues) {
     final SendQuery sendQuery = _dylib.lookup<NativeFunction<send_query_func>>("send_query").asFunction();
     Pointer<SendQueryResult> sendQueryResultPointer =
-        sendQuery(_conn, Utf8.toUtf8(query), rowValues?.length ?? 0, _toValuesArray(rowValues ?? []), 1);
+        sendQuery(_conn, query.toNativeUtf8(), rowValues?.length ?? 0, _toValuesArray(rowValues ?? []), 1);
     SendQueryResult sendQueryResult = sendQueryResultPointer.ref;
     if (sendQueryResult.error.address != 0) {
       throw _extractError(sendQueryResult.error);
@@ -352,7 +352,7 @@ class PGConnection {
   }
 
   String _extractError(Pointer<Utf8> errorPointer) {
-    return Utf8.fromUtf8(errorPointer);
+    return errorPointer.toDartString();
   }
 
   Future<ResultSet> select(String query, {Map<String, dynamic> params}) async {
@@ -480,13 +480,12 @@ class PGConnection {
   }
 
   Pointer<Pointer<Utf8>> _toValuesArray(List<String> parameterValues) {
-    Pointer<Pointer<Utf8>> result =
-        allocate<Pointer<Utf8>>(count: parameterValues != null ? parameterValues.length : 0);
+    Pointer<Pointer<Utf8>> result = calloc<Pointer<Utf8>>(parameterValues != null ? parameterValues.length : 0);
 
     if (parameterValues != null) {
       for (int i = 0; i < parameterValues.length; i++) {
         String parameterValue = parameterValues[i];
-        Pointer<Utf8> value = parameterValue != null ? Utf8.toUtf8(parameterValue) : Pointer.fromAddress(0);
+        Pointer<Utf8> value = parameterValue != null ? parameterValue.toNativeUtf8() : Pointer.fromAddress(0);
         result.elementAt(i).value = value;
       }
     }
