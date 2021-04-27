@@ -27,37 +27,37 @@ final RegExp _paramInTemplateRegexp =
 class ResultSet {
   final DynamicLibrary _dylib;
 
-  final List<RawResultSet> _rawResultSets;
+  final Map<RawResultSet, Pointer<RawResultSet>> _rawResultSets;
 
   ResultSet(this._dylib, this._rawResultSets);
 
   bool _closed = false;
 
   int get columnsNumber {
-    return _rawResultSets.isNotEmpty ? _rawResultSets.first.columnsNumber : 0;
+    return _rawResultSets.isNotEmpty ? _rawResultSets.keys.first.columnsNumber : 0;
   }
 
   int get rowsNumber {
     return _rawResultSets.isNotEmpty
-        ? _rawResultSets.fold(0, (count, rawResultSet) => count + rawResultSet.rowsNumber)
+        ? _rawResultSets.keys.fold(0, (count, rawResultSet) => count + rawResultSet.rowsNumber)
         : 0;
   }
 
   List<String> get columnNames {
-    return _rawResultSets.isNotEmpty ? _rawResultSets.first.columnNames : [];
+    return _rawResultSets.isNotEmpty ? _rawResultSets.keys.first.columnNames : [];
   }
 
   List<List<dynamic>> get rows {
-    return _rawResultSets.expand((rawResultSet) => rawResultSet.rows).toList();
+    return _rawResultSets.keys.expand((rawResultSet) => rawResultSet.rows).toList();
   }
 
   List<Map<String, dynamic>> get rowMaps {
-    return _rawResultSets.expand((rawResultSet) => rawResultSet.rowsMap).toList();
+    return _rawResultSets.keys.expand((rawResultSet) => rawResultSet.rowsMap).toList();
   }
 
   void close() {
     if (!_closed) {
-      _rawResultSets.forEach((rawResultSet) => rawResultSet.close(_dylib));
+      _rawResultSets.forEach((rawResultSet, address) => rawResultSet.close(_dylib, address));
       _closed = true;
     }
   }
@@ -141,10 +141,10 @@ class RawResultSet extends Struct {
     return result;
   }
 
-  void close(DynamicLibrary dylib) {
+  void close(DynamicLibrary dylib, Pointer<RawResultSet> address) {
     final CloseResultSet closeResultSet =
         dylib.lookup<NativeFunction<close_result_set_func>>("close_result_set").asFunction();
-    closeResultSet(this.addressOf);
+    closeResultSet(address);
   }
 }
 
@@ -256,24 +256,24 @@ class PGConnection {
 
     // case for query with no params
     if (rawQuery.values.isEmpty) {
-      RawResultSet rawResultSet = await _executeNativeQuery(rawQuery.query);
-      return ResultSet(_dylib, [rawResultSet]);
+      final rawResultSet = await _executeNativeQuery(rawQuery.query);
+      return ResultSet(_dylib, {rawResultSet.key: rawResultSet.value});
     }
 
     // case for query with params
-    List<RawResultSet> rawResults = [];
+    List<MapEntry<RawResultSet, Pointer<RawResultSet>>> rawResults = [];
     for (List<String> rowValues in rawQuery.values) {
-      RawResultSet rawResultSet = await _executeNativeQuery(rawQuery.query, rowValues);
+      final rawResultSet = await _executeNativeQuery(rawQuery.query, rowValues);
       rawResults.add(rawResultSet);
     }
 
-    return ResultSet(_dylib, rawResults);
+    return ResultSet(_dylib, Map.fromEntries(rawResults));
   }
 
   Queue<_QueuedQuery> _queue = Queue<_QueuedQuery>();
 
-  Future<RawResultSet> _executeNativeQuery(String query, [List<String> rowValues]) {
-    final completer = Completer<RawResultSet>();
+  Future<MapEntry<RawResultSet, Pointer<RawResultSet>>> _executeNativeQuery(String query, [List<String> rowValues]) {
+    final completer = Completer<MapEntry<RawResultSet, Pointer<RawResultSet>>>();
 
     _QueuedQuery _queuedQuery = _QueuedQuery(query, rowValues, completer);
     _queue.addFirst(_queuedQuery);
@@ -297,7 +297,7 @@ class PGConnection {
       _queryInProgress = true;
 
       _sendQuery(_lastQuery.query, _lastQuery.rowValues);
-      RawResultSet rawResultSet = await _getResult();
+      final rawResultSet = await _getResult();
       _lastQuery.completer.complete(rawResultSet);
     } catch (e) {
       _lastQuery.completer.completeError(e);
@@ -308,10 +308,10 @@ class PGConnection {
     }
   }
 
-  Future<RawResultSet> _getResult() async {
-    RawResultSet rawResultSet;
+  Future<MapEntry<RawResultSet, Pointer<RawResultSet>>> _getResult() async {
+    MapEntry<RawResultSet, Pointer<RawResultSet>> rawResultSet;
     while (true) {
-      RawResultSet currentRawResultSet = await Future<RawResultSet>.delayed(Duration(milliseconds: 3), () {
+      MapEntry<RawResultSet, Pointer<RawResultSet>> currentRawResultSet = await Future<MapEntry<RawResultSet, Pointer<RawResultSet>>>.delayed(Duration(milliseconds: 3), () {
         final GetResult getResult = _dylib.lookup<NativeFunction<get_result_func>>("get_result").asFunction();
         Pointer<RawResultSet> result = getResult(_conn);
 
@@ -324,7 +324,7 @@ class PGConnection {
           throw _extractError(rawResultSet.error);
         }
 
-        return rawResultSet;
+        return MapEntry(rawResultSet, result);
       });
 
       if (currentRawResultSet == null) {
@@ -332,7 +332,7 @@ class PGConnection {
       }
 
       if (rawResultSet != null) {
-        rawResultSet.close(_dylib);
+        rawResultSet.key.close(_dylib, rawResultSet.value);
       }
 
       rawResultSet = currentRawResultSet;
@@ -595,7 +595,7 @@ class PGConnectionManager implements ConnectionManager<PGConnection> {
 class _QueuedQuery {
   final String query;
   final List<String> rowValues;
-  final Completer<RawResultSet> completer;
+  final Completer<MapEntry<RawResultSet, Pointer<RawResultSet>>> completer;
 
   _QueuedQuery(this.query, this.rowValues, this.completer);
 }
