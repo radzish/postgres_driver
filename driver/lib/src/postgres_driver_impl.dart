@@ -299,8 +299,8 @@ class PGConnection {
       _sendQuery(_lastQuery.query, _lastQuery.rowValues);
       final rawResultSet = await _getResult();
       _lastQuery.completer.complete(rawResultSet);
-    } catch (e) {
-      _lastQuery.completer.completeError(e);
+    } catch (e, st) {
+      _lastQuery.completer.completeError(e, st);
     } finally {
       _queryInProgress = false;
       _queue.removeLast();
@@ -352,7 +352,7 @@ class PGConnection {
   }
 
   String _extractError(Pointer<Utf8> errorPointer) {
-    return errorPointer.toDartString();
+    return errorPointer.toDartString()?.trim();
   }
 
   Future<ResultSet> select(String query, {Map<String, dynamic> params}) async {
