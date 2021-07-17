@@ -174,7 +174,7 @@ void main() {
 
     expect(() async {
       await conn.execute("insert into test_table(id, name) values(@id, @a!) returning id", testValues);
-    }, throwsA("param name \"a!\" invalid"));
+    }, throwsA(predicate((e) => e is PGException && e.message == "param name \"a!\" invalid")));
 
     rs = await conn.execute("select id, name from test_table");
     expect(rs.rowsNumber, 0);

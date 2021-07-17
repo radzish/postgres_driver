@@ -311,7 +311,8 @@ class PGConnection {
   Future<MapEntry<RawResultSet, Pointer<RawResultSet>>> _getResult() async {
     MapEntry<RawResultSet, Pointer<RawResultSet>> rawResultSet;
     while (true) {
-      MapEntry<RawResultSet, Pointer<RawResultSet>> currentRawResultSet = await Future<MapEntry<RawResultSet, Pointer<RawResultSet>>>.delayed(Duration(milliseconds: 3), () {
+      MapEntry<RawResultSet, Pointer<RawResultSet>> currentRawResultSet =
+          await Future<MapEntry<RawResultSet, Pointer<RawResultSet>>>.delayed(Duration(milliseconds: 3), () {
         final GetResult getResult = _dylib.lookup<NativeFunction<get_result_func>>("get_result").asFunction();
         Pointer<RawResultSet> result = getResult(_conn);
 
@@ -351,8 +352,8 @@ class PGConnection {
     }
   }
 
-  String _extractError(Pointer<Utf8> errorPointer) {
-    return errorPointer.toDartString()?.trim();
+  PGException _extractError(Pointer<Utf8> errorPointer) {
+    return PGException(errorPointer.toDartString()?.trim());
   }
 
   Future<ResultSet> select(String query, {Map<String, dynamic> params}) async {
@@ -495,7 +496,7 @@ class PGConnection {
 
   String _prepareInsertQuery(String table, Iterable<String> keys) {
     if (keys.isEmpty) {
-      throw "insert: values are empty";
+      throw PGException("insert: values are empty");
     }
 
     StringBuffer columns = StringBuffer();
@@ -521,7 +522,7 @@ class PGConnection {
 
   String _prepareUpdateQuery(String table, Iterable<String> keys, String criteria) {
     if (keys.isEmpty) {
-      throw "update: values are empty";
+      throw PGException("update: values are empty");
     }
 
     String pairs = keys.map((key) => "$key = $_parameterNamePrefix$key").join(",");
@@ -541,7 +542,7 @@ class PGConnection {
 
   void _validateParamName(String key) {
     if (!_paramNameRegexp.hasMatch(key)) {
-      throw "param name \"$key\" invalid";
+      throw PGException("param name \"$key\" invalid");
     }
   }
 
@@ -570,7 +571,7 @@ class PGConnectionManager implements ConnectionManager<PGConnection> {
     try {
       await connection.open();
     } catch (e) {
-      throw "Can not open DB connection: ${e}";
+      throw PGException("Can not open DB connection: ${e}");
     }
 
     return connection;
@@ -598,4 +599,15 @@ class _QueuedQuery {
   final Completer<MapEntry<RawResultSet, Pointer<RawResultSet>>> completer;
 
   _QueuedQuery(this.query, this.rowValues, this.completer);
+}
+
+class PGException implements Exception {
+  final String message;
+
+  PGException(this.message);
+
+  @override
+  String toString() {
+    return "PG Exception: $message";
+  }
 }

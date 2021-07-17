@@ -20,7 +20,7 @@ void main() {
   test("execute should fail on invalid query", () async {
     expect(() async {
       await conn.execute("select invalid query");
-    }, throwsA(anything));
+    }, throwsA(TypeMatcher<PGException>()));
   });
 
   test("execute should work after failed invalid query on same connection", () async {
