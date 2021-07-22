@@ -6,6 +6,7 @@ import 'dart:ffi';
 
 import 'package:db_context_lib/db_context_lib.dart';
 import 'package:ffi/ffi.dart';
+import 'package:logging/logging.dart';
 
 const int _pgTypeBool = 16;
 const int _pgTypeInt0 = 20;
@@ -23,6 +24,8 @@ final RegExp _paramNameRegexp = RegExp("^$_paramNameRegexString\$");
 final RegExp _paramTemplateRegexp = RegExp("$_parameterNamePrefix($_paramNameRegexString)");
 final RegExp _paramInTemplateRegexp =
     RegExp("\\s+in\\s*\\($_parameterNamePrefix($_paramNameRegexString)\\)", caseSensitive: false);
+
+Logger get _logger => Logger.root;
 
 class ResultSet {
   final DynamicLibrary _dylib;
@@ -388,20 +391,20 @@ class PGConnection {
 
   Future<void> begin() async {
     if (_transactionLevel++ == 0) {
-      print("beginning transaction: ${hashCode} ...");
+      _logger.fine("beginning transaction: ${hashCode} ...");
       await execute("BEGIN");
     }
   }
 
   Future<void> commit() async {
     if (--_transactionLevel == 0) {
-      print("committing transaction: ${hashCode} ...");
+      _logger.fine("committing transaction: ${hashCode} ...");
       await execute("COMMIT");
     }
   }
 
   Future<void> rollback() async {
-    print("rolling back transaction: ${hashCode} ...");
+    _logger.fine("rolling back transaction: ${hashCode} ...");
     await execute("ROLLBACK");
     _transactionLevel = 0;
   }
