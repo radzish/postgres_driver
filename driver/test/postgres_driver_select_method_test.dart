@@ -4,8 +4,8 @@ import 'package:test/test.dart';
 import 'stuff.dart';
 
 void main() {
-  PGConnection conn;
-  ResultSet rs;
+  late PGConnection conn;
+  ResultSet? rs;
 
   Future<void> _testInsert(PGConnection conn) async {
     (await conn.execute("insert into test_table(id, name) values(0, 'name0'),(1, 'name1')")).close();
@@ -38,7 +38,7 @@ void main() {
 
     rs = await conn.select("select id, name from test_table where id = @id", params: {"id": 0});
 
-    expect(rs.rowMaps, [
+    expect(rs!.rowMaps, [
       {"id": 0, "name": "name0"},
     ]);
   });
@@ -48,7 +48,7 @@ void main() {
 
     rs = await conn.select("select id, name from test_table order by id");
 
-    expect(rs.rowMaps, [
+    expect(rs!.rowMaps, [
       {"id": 0, "name": "name0"},
       {"id": 1, "name": "name1"},
     ]);

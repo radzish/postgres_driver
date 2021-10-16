@@ -67,71 +67,77 @@ class ResultSet {
 }
 
 class RawResultSet extends Struct {
-  Pointer<Utf8> error;
+  external Pointer<Utf8> error;
 
   @Int32()
-  int columnsNumber;
+  external int columnsNumber;
 
   @Int32()
-  int rowsNumber;
+  external int rowsNumber;
 
-  Pointer<Pointer<Utf8>> _columnNames;
+  external Pointer<Pointer<Utf8>> _columnNames;
 
-  Pointer<Int32> _columnTypes;
+  external Pointer<Int32> _columnTypes;
 
-  Pointer<Pointer<Pointer<Utf8>>> _rows;
+  external Pointer<Pointer<Pointer<Utf8>>> _rows;
 
   List<String> get columnNames {
-    List<String> result = List<String>(columnsNumber);
-    for (int col = 0; col < columnsNumber; col++) {
-      Pointer<Utf8> columnNamePtr = _columnNames[col];
-      String columnName = columnNamePtr.toDartString();
-      result[col] = columnName;
+    final result = <String>[];
+    for (var col = 0; col < columnsNumber; col++) {
+      final columnNamePtr = _columnNames[col];
+      final columnName = columnNamePtr.toDartString();
+      result.add(columnName);
     }
     return result;
   }
 
   List<List<dynamic>> get rows {
-    List<List<dynamic>> result = List<List<dynamic>>(rowsNumber);
-    for (int row = 0; row < rowsNumber; row++) {
-      result[row] = List<dynamic>(columnsNumber);
-      Pointer<Pointer<Utf8>> rowPtr = _rows[row];
-      for (int col = 0; col < columnsNumber; col++) {
-        int valueType = _columnTypes[col];
-        Pointer<Utf8> valuePtr = rowPtr[col];
+    final result = <List<Object?>>[];
+
+    for (var rowNumber = 0; rowNumber < rowsNumber; rowNumber++) {
+      final row = <Object?>[];
+      result.add(row);
+
+      final rowPtr = _rows[rowNumber];
+      for (var col = 0; col < columnsNumber; col++) {
+        final valueType = _columnTypes[col];
+        final valuePtr = rowPtr[col];
         if (valuePtr.address != 0) {
-          String rawValue = valuePtr.toDartString();
+          final rawValue = valuePtr.toDartString();
           dynamic value = _stringToValue(valueType, rawValue);
-          result[row][col] = value;
+          row.add(value);
+        } else {
+          row.add(null);
         }
       }
     }
+
     return result;
   }
 
   List<Map<String, dynamic>> get rowsMap {
-    List<Map<String, dynamic>> result = List<Map<String, dynamic>>(rowsNumber);
-    for (int row = 0; row < rowsNumber; row++) {
-      result[row] = null;
-      Pointer<Pointer<Utf8>> rowPtr = _rows[row];
-      for (int col = 0; col < columnsNumber; col++) {
-        Pointer<Utf8> valuePtr = rowPtr[col];
+    final result = <Map<String, dynamic>>[];
+    for (var rowNum = 0; rowNum < rowsNumber; rowNum++) {
+      final row = <String, dynamic>{};
+      result.add(row);
+      final rowPtr = _rows[rowNum];
+      for (var col = 0; col < columnsNumber; col++) {
+        final valuePtr = rowPtr[col];
         if (valuePtr.address != 0) {
-          int valueType = _columnTypes[col];
-          String valueString = valuePtr.toDartString();
+          final valueType = _columnTypes[col];
+          final valueString = valuePtr.toDartString();
           dynamic value = _stringToValue(valueType, valueString);
-          Pointer<Utf8> columnNamePtr = _columnNames[col];
-          String columnName = columnNamePtr.toDartString();
+          final columnNamePtr = _columnNames[col];
+          final columnName = columnNamePtr.toDartString();
 
           final nameParts = columnName.split("\.");
 
-          result[row] ??= {};
-          Map<String, dynamic> curMap = result[row];
+          var curMap = row;
 
-          for (int i = 0; i < nameParts.length; i++) {
+          for (var i = 0; i < nameParts.length; i++) {
             final namePart = nameParts[i];
             if (i < nameParts.length - 1) {
-              curMap[namePart] ??= Map<String, dynamic>();
+              curMap[namePart] ??= <String, dynamic>{};
               curMap = curMap[namePart];
             } else {
               // last part, just assign value
@@ -152,14 +158,10 @@ class RawResultSet extends Struct {
 }
 
 class SendQueryResult extends Struct {
-  Pointer<Utf8> error;
+  external Pointer<Utf8> error;
 }
 
 dynamic _stringToValue(int valueType, String valueString) {
-  if (valueString == null) {
-    return null;
-  }
-
   switch (valueType) {
     case _pgTypeBool:
       return valueString == "t";
@@ -182,7 +184,7 @@ dynamic _stringToValue(int valueType, String valueString) {
   return valueString;
 }
 
-String _valueToString(dynamic value) {
+String? _valueToString(dynamic value) {
   if (value == null) {
     return null;
   }
@@ -212,7 +214,7 @@ typedef CloseResultSet = void Function(Pointer<RawResultSet> resultSet);
 typedef send_query_func = Pointer<SendQueryResult> Function(Pointer<Int32> connection, Pointer<Utf8> query,
     Int32 paramCount, Pointer<Pointer<Utf8>> paramValues, Int32 reconnect);
 typedef SendQuery = Pointer<SendQueryResult> Function(
-    Pointer<Int32> connection, Pointer<Utf8> query, int paramCount, Pointer<Pointer<Utf8>> paramValues, int reconnect);
+    Pointer<Int32> onnection, Pointer<Utf8> query, int paramCount, Pointer<Pointer<Utf8>> paramValues, int reconnect);
 
 typedef get_result_func = Pointer<RawResultSet> Function(Pointer<Int32> connection);
 typedef GetResult = Pointer<RawResultSet> Function(Pointer<Int32> connection);
@@ -221,11 +223,11 @@ typedef test_func = Void Function(Pointer<Int32> connection);
 typedef TestFunc = void Function(Pointer<Int32> connection);
 
 class PGConnection {
-  static DynamicLibrary _dylib;
+  static late DynamicLibrary _dylib;
 
   final String connectionString;
 
-  Pointer<Int32> _conn;
+  late Pointer<Int32> _conn;
 
   bool _closed = false;
 
@@ -234,28 +236,21 @@ class PGConnection {
   bool _queryInProgress = false;
 
   factory PGConnection(String connectionString, {String driverPath = "./postgres-driver.so"}) {
-    _initDynlib(driverPath);
+    _dylib = DynamicLibrary.open(driverPath);
     return PGConnection._(connectionString);
   }
 
   PGConnection._(this.connectionString);
 
-  static void _initDynlib(String driverPath) {
-    if (_dylib == null) {
-      _dylib = DynamicLibrary.open(driverPath);
-    }
-  }
-
   bool get isClosed => _closed;
 
   Future<void> open() async {
-    final OpenConnection openConnection =
-        _dylib.lookup<NativeFunction<open_connection_func>>("open_connection").asFunction();
+    final openConnection = _dylib.lookupFunction<open_connection_func, OpenConnection>("open_connection");
     _conn = openConnection(connectionString.toNativeUtf8());
   }
 
-  Future<ResultSet> execute(String query, [List<Map<String, dynamic>> values]) async {
-    _RawQuery rawQuery = _prepareQuery(query, values);
+  Future<ResultSet> execute(String query, [List<Map<String, dynamic>> values = const []]) async {
+    final rawQuery = _prepareQuery(query, values);
 
     // case for query with no params
     if (rawQuery.values.isEmpty) {
@@ -264,8 +259,8 @@ class PGConnection {
     }
 
     // case for query with params
-    List<MapEntry<RawResultSet, Pointer<RawResultSet>>> rawResults = [];
-    for (List<String> rowValues in rawQuery.values) {
+    final rawResults = <MapEntry<RawResultSet, Pointer<RawResultSet>>>[];
+    for (final rowValues in rawQuery.values) {
       final rawResultSet = await _executeNativeQuery(rawQuery.query, rowValues);
       rawResults.add(rawResultSet);
     }
@@ -273,12 +268,12 @@ class PGConnection {
     return ResultSet(_dylib, Map.fromEntries(rawResults));
   }
 
-  Queue<_QueuedQuery> _queue = Queue<_QueuedQuery>();
+  final _queue = Queue<_QueuedQuery>();
 
-  Future<MapEntry<RawResultSet, Pointer<RawResultSet>>> _executeNativeQuery(String query, [List<String> rowValues]) {
+  Future<MapEntry<RawResultSet, Pointer<RawResultSet>>> _executeNativeQuery(String query, [List<String?> rowValues = const []]) {
     final completer = Completer<MapEntry<RawResultSet, Pointer<RawResultSet>>>();
 
-    _QueuedQuery _queuedQuery = _QueuedQuery(query, rowValues, completer);
+    final _queuedQuery = _QueuedQuery(query, rowValues, completer);
     _queue.addFirst(_queuedQuery);
 
     _processNextQuery();
@@ -295,7 +290,7 @@ class PGConnection {
       return;
     }
 
-    _QueuedQuery _lastQuery = _queue.last;
+    final _lastQuery = _queue.last;
     try {
       _queryInProgress = true;
 
@@ -311,19 +306,19 @@ class PGConnection {
     }
   }
 
-  Future<MapEntry<RawResultSet, Pointer<RawResultSet>>> _getResult() async {
-    MapEntry<RawResultSet, Pointer<RawResultSet>> rawResultSet;
+  Future<MapEntry<RawResultSet, Pointer<RawResultSet>>?> _getResult() async {
+    MapEntry<RawResultSet, Pointer<RawResultSet>>? rawResultSet;
     while (true) {
-      MapEntry<RawResultSet, Pointer<RawResultSet>> currentRawResultSet =
-          await Future<MapEntry<RawResultSet, Pointer<RawResultSet>>>.delayed(Duration(milliseconds: 3), () {
-        final GetResult getResult = _dylib.lookup<NativeFunction<get_result_func>>("get_result").asFunction();
-        Pointer<RawResultSet> result = getResult(_conn);
+      final currentRawResultSet =
+          await Future<MapEntry<RawResultSet, Pointer<RawResultSet>>?>.delayed(Duration(milliseconds: 3), () {
+        final getResult = _dylib.lookupFunction<get_result_func, GetResult>("get_result");
+        final result = getResult(_conn);
 
         if (result.address == 0) {
           return null;
         }
 
-        RawResultSet rawResultSet = result.ref;
+        final rawResultSet = result.ref;
         if (rawResultSet.error.address != 0) {
           throw _extractError(rawResultSet.error);
         }
@@ -345,22 +340,22 @@ class PGConnection {
     return rawResultSet;
   }
 
-  void _sendQuery(String query, List<String> rowValues) {
-    final SendQuery sendQuery = _dylib.lookup<NativeFunction<send_query_func>>("send_query").asFunction();
-    Pointer<SendQueryResult> sendQueryResultPointer =
+  void _sendQuery(String query, List<String?>? rowValues) {
+    final sendQuery = _dylib.lookupFunction<send_query_func, SendQuery>("send_query");
+    final sendQueryResultPointer =
         sendQuery(_conn, query.toNativeUtf8(), rowValues?.length ?? 0, _toValuesArray(rowValues ?? []), 1);
-    SendQueryResult sendQueryResult = sendQueryResultPointer.ref;
+    final sendQueryResult = sendQueryResultPointer.ref;
     if (sendQueryResult.error.address != 0) {
       throw _extractError(sendQueryResult.error);
     }
   }
 
   PGException _extractError(Pointer<Utf8> errorPointer) {
-    return PGException(errorPointer.toDartString()?.trim());
+    return PGException(errorPointer.toDartString().trim());
   }
 
-  Future<ResultSet> select(String query, {Map<String, dynamic> params}) async {
-    return await execute(query, params != null && params.isNotEmpty ? [params] : null);
+  Future<ResultSet> select(String query, {Map<String, dynamic> params = const {}}) async {
+    return await execute(query, [params]);
   }
 
   Future<void> insert(String table, Map<String, dynamic> record) async {
@@ -372,8 +367,12 @@ class PGConnection {
     await execute(_prepareInsertQuery(table, allKeys), records);
   }
 
-  Future<void> update(String table, Map<String, dynamic> updateParams,
-      {String criteria, Map<String, dynamic> criteriaParams}) async {
+  Future<void> update(
+    String table,
+    Map<String, dynamic> updateParams, {
+    String? criteria,
+    Map<String, dynamic>? criteriaParams,
+  }) async {
     Map<String, dynamic> params;
     if (criteriaParams != null) {
       params = Map.of(updateParams);
@@ -385,8 +384,8 @@ class PGConnection {
     await execute(_prepareUpdateQuery(table, params.keys, criteria), [params]);
   }
 
-  Future<void> delete(String table, {String criteria, Map<String, dynamic> criteriaParams}) async {
-    await execute(_prepareDeleteQuery(table, criteria), criteriaParams != null ? [criteriaParams] : null);
+  Future<void> delete(String table, {String? criteria, Map<String, dynamic>? criteriaParams}) async {
+    await execute(_prepareDeleteQuery(table, criteria), [criteriaParams ?? {}]);
   }
 
   Future<void> begin() async {
@@ -412,29 +411,28 @@ class PGConnection {
   Future<void> close() async {
     if (!_closed) {
       _closed = true;
-      final CloseConnection closeConnection =
-          _dylib.lookup<NativeFunction<close_connection_func>>("close_connection").asFunction();
+      final closeConnection = _dylib.lookupFunction<close_connection_func, CloseConnection>("close_connection");
       closeConnection(_conn);
     }
   }
 
-  _RawQuery _prepareQuery(String query, [List<Map<String, dynamic>> values]) {
-    Map<String, int> paramPositions = {};
+  _RawQuery _prepareQuery(String query, [List<Map<String, dynamic>> values = const []]) {
+    final paramPositions = <String, int>{};
 
-    int inParamNumber = 0;
+    var inParamNumber = 0;
 
     _validateParamNames(values);
 
-    int paramsNumber = 0;
+    var paramsNumber = 0;
 
     // first handle "in (@param)" params
-    String rawQuery = query.replaceAllMapped(
+    var rawQuery = query.replaceAllMapped(
       _paramInTemplateRegexp,
       (match) {
-        String param = match.group(1);
+        final param = match.group(1)!;
         // as this is a query, taking first line of values only
         final listValue = values.first[param] as List;
-        int position = paramPositions.putIfAbsent(param, () => paramsNumber);
+        final position = paramPositions.putIfAbsent(param, () => paramsNumber);
         paramsNumber += listValue.length;
         final parameterPlaceholders = Iterable.generate(listValue.length, (i) => "\$${position + 1 + i}").join(",");
         return " in(${parameterPlaceholders})";
@@ -447,51 +445,47 @@ class PGConnection {
     rawQuery = rawQuery.replaceAllMapped(
       _paramTemplateRegexp,
       (match) {
-        String param = match.group(1);
-        int position = paramPositions.putIfAbsent(param, () => paramsNumber++);
+        final param = match.group(1)!;
+        final position = paramPositions.putIfAbsent(param, () => paramsNumber++);
         return "\$${position + 1}";
       },
     );
 
-    Iterable<List<String>> rawValues = values != null
-        ? values.map(
-            (rowValues) {
-              List<String> rowValuesList = List<String>(paramsNumber);
+    final rawValues = values.map(
+      (rowValues) {
+        final rowValuesList = List.filled(paramsNumber, null as String?);
 
-              paramPositions.forEach((param, position) {
-                dynamic value = rowValues[param];
-                // we treat List params as IN only in case if they are indeed in,
-                // otherwise list params should be handled regularly
-                // TODO: introduce dedicated class for IN params so we do not have
-                // ambiguity with Lists
-                if (value is List && position < inParamNumber) {
-                  for (int i = 0; i < value.length; i++) {
-                    String rawValue = _valueToString(value[i]);
-                    rowValuesList[position + i] = rawValue;
-                  }
-                } else {
-                  String rawValue = _valueToString(value);
-                  rowValuesList[position] = rawValue;
-                }
-              });
+        paramPositions.forEach((param, position) {
+          dynamic value = rowValues[param];
+          // we treat List params as IN only in case if they are indeed in,
+          // otherwise list params should be handled regularly
+          // TODO: introduce dedicated class for IN params so we do not have
+          // ambiguity with Lists
+          if (value is List && position < inParamNumber) {
+            for (var i = 0; i < value.length; i++) {
+              final rawValue = _valueToString(value[i]);
+              rowValuesList[position + i] = rawValue;
+            }
+          } else {
+            final rawValue = _valueToString(value);
+            rowValuesList[position] = rawValue;
+          }
+        });
 
-              return rowValuesList;
-            },
-          )
-        : [];
+        return rowValuesList;
+      },
+    );
 
     return _RawQuery(rawQuery, rawValues);
   }
 
-  Pointer<Pointer<Utf8>> _toValuesArray(List<String> parameterValues) {
-    Pointer<Pointer<Utf8>> result = calloc<Pointer<Utf8>>(parameterValues != null ? parameterValues.length : 0);
+  Pointer<Pointer<Utf8>> _toValuesArray(List<String?> parameterValues) {
+    final result = calloc<Pointer<Utf8>>(parameterValues.length);
 
-    if (parameterValues != null) {
-      for (int i = 0; i < parameterValues.length; i++) {
-        String parameterValue = parameterValues[i];
-        Pointer<Utf8> value = parameterValue != null ? parameterValue.toNativeUtf8() : Pointer.fromAddress(0);
-        result.elementAt(i).value = value;
-      }
+    for (var i = 0; i < parameterValues.length; i++) {
+      final parameterValue = parameterValues[i];
+      final value = parameterValue != null ? parameterValue.toNativeUtf8() : nullptr;
+      result.elementAt(i).value = value;
     }
 
     return result;
@@ -502,28 +496,33 @@ class PGConnection {
       throw PGException("insert: values are empty");
     }
 
-    StringBuffer columns = StringBuffer();
-    StringBuffer params = StringBuffer();
+    final columns = StringBuffer();
+    final params = StringBuffer();
 
-    Iterator<String> it = keys.iterator;
+    final it = keys.iterator;
+
     do {
-      if (it.current == null) {
-        it.moveNext();
+      final hasNext = it.moveNext();
+
+      if (hasNext) {
+        if (columns.isNotEmpty) {
+          columns.write(",");
+          params.write(",");
+        }
+
+        columns.write(it.current);
+
+        params.write(_parameterNamePrefix);
+        params.write(it.current);
       } else {
-        columns.write(",");
-        params.write(",");
+        break;
       }
-
-      columns.write(it.current);
-
-      params.write(_parameterNamePrefix);
-      params.write(it.current);
-    } while (it.moveNext());
+    } while (true);
 
     return "insert into $table($columns) values($params)";
   }
 
-  String _prepareUpdateQuery(String table, Iterable<String> keys, String criteria) {
+  String _prepareUpdateQuery(String table, Iterable<String> keys, String? criteria) {
     if (keys.isEmpty) {
       throw PGException("update: values are empty");
     }
@@ -533,12 +532,12 @@ class PGConnection {
     return "update $table set ${pairs.toString()} ${criteria != null ? "where $criteria" : ''}";
   }
 
-  String _prepareDeleteQuery(String table, String criteria) {
+  String _prepareDeleteQuery(String table, String? criteria) {
     return "delete from $table ${criteria != null ? "where $criteria" : ''}";
   }
 
   void _validateParamNames(List<Map<String, dynamic>> values) {
-    if (values != null && values.isNotEmpty) {
+    if (values.isNotEmpty) {
       values.forEach((value) => value.keys.forEach(_validateParamName));
     }
   }
@@ -550,14 +549,14 @@ class PGConnection {
   }
 
   void testFunc() {
-    final TestFunc testFunc = _dylib.lookup<NativeFunction<test_func>>("test").asFunction();
+    final testFunc = _dylib.lookupFunction<test_func, TestFunc>("test");
     testFunc(_conn);
   }
 }
 
 class _RawQuery {
   final String query;
-  final Iterable<List<String>> values;
+  final Iterable<List<String?>> values;
 
   _RawQuery(this.query, this.values);
 }
@@ -569,7 +568,7 @@ class PGConnectionManager implements ConnectionManager<PGConnection> {
 
   @override
   Future<PGConnection> create() async {
-    PGConnection connection = PGConnection(connectionString);
+    final connection = PGConnection(connectionString);
 
     try {
       await connection.open();
@@ -598,7 +597,7 @@ class PGConnectionManager implements ConnectionManager<PGConnection> {
 
 class _QueuedQuery {
   final String query;
-  final List<String> rowValues;
+  final List<String?> rowValues;
   final Completer<MapEntry<RawResultSet, Pointer<RawResultSet>>> completer;
 
   _QueuedQuery(this.query, this.rowValues, this.completer);

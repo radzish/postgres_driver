@@ -4,8 +4,8 @@ import 'package:test/test.dart';
 import 'stuff.dart';
 
 void main() {
-  PGConnection conn;
-  ResultSet rs;
+  late PGConnection conn;
+  ResultSet? rs;
 
   setUp(() async {
     conn = createConnection();
@@ -29,6 +29,6 @@ void main() {
     } catch (_) {}
 
     final rs = await conn.select("select 1");
-    expect(rs.rows.first.first, 1);
+    expect(rs.rows.first!.first, 1);
   });
 }

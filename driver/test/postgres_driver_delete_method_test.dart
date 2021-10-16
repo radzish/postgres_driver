@@ -4,8 +4,8 @@ import 'package:test/test.dart';
 import 'stuff.dart';
 
 void main() {
-  PGConnection conn;
-  ResultSet rs;
+  late PGConnection conn;
+  ResultSet? rs;
 
   List<Map<String, dynamic>> _testValues = [
     {"id": 0, "name": "name0"},
@@ -40,7 +40,7 @@ void main() {
     await conn.delete("test_table");
 
     rs = await conn.execute("select id, name from test_table");
-    expect(rs.rowsNumber, 0);
+    expect(rs!.rowsNumber, 0);
   });
 
   test("delete should delete table records with criteria", () async {
@@ -49,7 +49,7 @@ void main() {
     await conn.delete("test_table", criteria: "id = 0");
 
     rs = await conn.execute("select id, name from test_table order by id");
-    expect(rs.rowMaps, [
+    expect(rs!.rowMaps, [
       {"id": 1, "name": "name1"}
     ]);
   });
@@ -60,7 +60,7 @@ void main() {
     await conn.delete("test_table", criteria: "id = @id", criteriaParams: {"id": 0});
 
     rs = await conn.execute("select id, name from test_table order by id");
-    expect(rs.rowMaps, [
+    expect(rs!.rowMaps, [
       {"id": 1, "name": "name1"}
     ]);
   });

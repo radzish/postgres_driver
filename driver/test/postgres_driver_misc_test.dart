@@ -33,7 +33,7 @@ void main() {
     // on this call connection should be recovered
     ResultSet rs = await conn.select("select 1", params: {});
     expect(rs.rowsNumber, 1);
-    expect(rs.rows[0][0], 1);
+    expect(rs.rows[0]![0], 1);
 
     await conn.close();
   });
@@ -55,7 +55,7 @@ void main() {
     // on this call connection should be recovered
     ResultSet rs = await conn.select("select 1", params: {});
     expect(rs.rowsNumber, 1);
-    expect(rs.rows[0][0], 1);
+    expect(rs.rows[0]![0], 1);
 
     await conn.close();
   });

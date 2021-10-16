@@ -4,8 +4,8 @@ import 'package:test/test.dart';
 import 'stuff.dart';
 
 void main() {
-  PGConnection conn;
-  ResultSet rs;
+  late PGConnection conn;
+  ResultSet? rs;
 
   setUp(() async {
     conn = createConnection();
@@ -42,7 +42,7 @@ void main() {
       },
     );
 
-    expect(rs.rowMaps, [
+    expect(rs!.rowMaps, [
       {"id": 0},
       {"id": 2},
     ]);
@@ -60,7 +60,7 @@ void main() {
       },
     );
 
-    expect(rs.rowMaps, [
+    expect(rs!.rowMaps, [
       {"name": "item0"},
       {"name": "item2"},
     ]);
@@ -81,7 +81,7 @@ void main() {
       },
     );
 
-    expect(rs.rowMaps, [
+    expect(rs!.rowMaps, [
       {"name": "item2"},
     ]);
   });
@@ -96,7 +96,7 @@ void main() {
       },
     );
 
-    expect(rs.rowMaps, [
+    expect(rs!.rowMaps, [
       {"name": "item0"},
     ]);
   });
@@ -117,7 +117,7 @@ void main() {
       },
     );
 
-    expect(rs.rowMaps, [
+    expect(rs!.rowMaps, [
       {"name": "item2"},
       {"name": "item3"},
     ]);

@@ -4,8 +4,8 @@ import 'package:test/test.dart';
 import 'stuff.dart';
 
 void main() {
-  PGConnection conn;
-  ResultSet rs;
+  late PGConnection conn;
+  ResultSet? rs;
 
   List<Map<String, dynamic>> _testValues = [
     {"id": 0, "name": "name0"},
@@ -41,7 +41,7 @@ void main() {
     await conn.update("test_table", updateValue);
 
     rs = await conn.execute("select id, name from test_table order by id");
-    expect(rs.rowMaps, [
+    expect(rs!.rowMaps, [
       {"id": 0, "name": "nameUpdated"},
       {"id": 1, "name": "nameUpdated"}
     ]);
@@ -54,7 +54,7 @@ void main() {
     await conn.update("test_table", updateValue, criteria: "id = 0");
 
     rs = await conn.execute("select id, name from test_table order by id");
-    expect(rs.rowMaps, [
+    expect(rs!.rowMaps, [
       {"id": 0, "name": "name0updated"},
       {"id": 1, "name": "name1"}
     ]);
@@ -67,7 +67,7 @@ void main() {
     await conn.update("test_table", updateValue, criteria: "id = @id", criteriaParams: {"id": 0});
 
     rs = await conn.execute("select id, name from test_table order by id");
-    expect(rs.rowMaps, [
+    expect(rs!.rowMaps, [
       {"id": 0, "name": "name0updated"},
       {"id": 1, "name": "name1"}
     ]);
@@ -80,7 +80,7 @@ void main() {
     await conn.update("test_table", updateValue, criteria: "id = @id", criteriaParams: {"id": 0});
 
     rs = await conn.execute("select id, name from test_table order by id");
-    expect(rs.rowMaps, [
+    expect(rs!.rowMaps, [
       {"id": 0},
       {"id": 1, "name": "name1"}
     ]);
