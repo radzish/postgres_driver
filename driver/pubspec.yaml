@@ -20,15 +20,3 @@ dev_dependencies:
     git:
       url: https://github.com/radzish/db_context.git
       path: db_context_gen
-
-dependency_overrides:
-  db_context_lib:
-    git:
-      url: https://github.com/radzish/db_context.git
-      path: db_context_lib
-      ref: b56418f0
-  db_context_gen:
-    git:
-      url: https://github.com/radzish/db_context.git
-      path: db_context_gen
-      ref: b56418f0
