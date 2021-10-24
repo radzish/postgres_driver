@@ -4,8 +4,8 @@ import 'package:test/test.dart';
 import 'stuff.dart';
 
 void main() {
-  PGConnection conn;
-  ResultSet rs;
+  late PGConnection conn;
+  ResultSet? rs;
 
   Future<void> _testInsert(PGConnection conn) async {
     (await conn.execute("insert into test_table(id, name) values(0, 'name0'),(1, 'name1')")).close();
@@ -51,7 +51,7 @@ void main() {
 
     rs = await conn.execute("select id, name from test_table");
 
-    expect(rs.columnsNumber, 2);
+    expect(rs!.columnsNumber, 2);
   });
 
   test("select should returns correct column names", () async {
@@ -59,7 +59,7 @@ void main() {
 
     rs = await conn.execute("select id, name from test_table");
 
-    expect(rs.columnNames, ["id", "name"]);
+    expect(rs!.columnNames, ["id", "name"]);
   });
 
   test("select should returns correct rows", () async {
@@ -67,7 +67,7 @@ void main() {
 
     rs = await conn.execute("select id, name from test_table");
 
-    expect(rs.rows, [
+    expect(rs!.rows, [
       [0, "name0"],
       [1, "name1"]
     ]);
@@ -78,7 +78,7 @@ void main() {
 
     rs = await conn.execute("select id, name from test_table");
 
-    expect(rs.rowMaps, _testValues);
+    expect(rs!.rowMaps, _testValues);
   });
 
   test("select result set rows must contain null values", () async {
@@ -89,7 +89,7 @@ void main() {
     rs = await conn.execute("insert into test_table(id) values(@id)", testValues);
 
     rs = await conn.execute("select id, name from test_table");
-    expect(rs.rows, [
+    expect(rs!.rows, [
       [0, null]
     ]);
   });
@@ -102,7 +102,7 @@ void main() {
     rs = await conn.execute("insert into test_table(id) values(@id)", testValues);
 
     rs = await conn.execute("select id, name from test_table");
-    expect(rs.rowMaps, [
+    expect(rs!.rowMaps, [
       {"id": 0}
     ]);
   });
@@ -111,13 +111,13 @@ void main() {
     rs = await conn.execute("insert into test_table(id, name) values(0, 'name0'),(1, 'name1')");
 
     rs = await conn.execute("select id, name from test_table");
-    expect(rs.rowMaps, _testValues);
+    expect(rs!.rowMaps, _testValues);
   });
 
   test("insert should return correct id", () async {
     rs = await conn.execute("insert into test_table(id, name) values(0, 'name0'),(1, 'name1') returning id");
 
-    expect(rs.rowMaps, [
+    expect(rs!.rowMaps, [
       {"id": 0},
       {"id": 1}
     ]);
@@ -132,7 +132,7 @@ void main() {
     rs = await conn.execute("insert into test_table(id, name) values(@id, @name)", testValues);
 
     rs = await conn.execute("select id, name from test_table");
-    expect(rs.rows, [
+    expect(rs!.rows, [
       [0, null],
       [1, null],
     ]);
@@ -142,13 +142,13 @@ void main() {
     rs = await conn.execute("insert into test_table(id, name) values(@id, @name)", _testValues);
 
     rs = await conn.execute("select id, name from test_table");
-    expect(rs.rowMaps, _testValues);
+    expect(rs!.rowMaps, _testValues);
   });
 
   test("insert should handle named parameters and return correct ids", () async {
     rs = await conn.execute("insert into test_table(id, name) values(@id, @name) returning id", _testValues);
 
-    expect(rs.rowMaps, [
+    expect(rs!.rowMaps, [
       {"id": 0},
       {"id": 1}
     ]);
@@ -162,7 +162,7 @@ void main() {
     rs = await conn.execute("insert into test_table(id, name) values(@id, @a0_) returning id", testValues);
 
     rs = await conn.execute("select id, name from test_table");
-    expect(rs.rowMaps, [
+    expect(rs!.rowMaps, [
       {"id": 0, "name": "name0"}
     ]);
   });
@@ -174,19 +174,19 @@ void main() {
 
     expect(() async {
       await conn.execute("insert into test_table(id, name) values(@id, @a!) returning id", testValues);
-    }, throwsA(predicate((e) => e is PGException && e.message == "param name \"a!\" invalid")));
+    }, throwsA(predicate((dynamic e) => e is PGException && e.message == "param name \"a!\" invalid")));
 
     rs = await conn.execute("select id, name from test_table");
-    expect(rs.rowsNumber, 0);
+    expect(rs!.rowsNumber, 0);
   });
 
   test("empty result set should have proper values", () async {
     rs = await conn.execute("insert into test_table(id, name) values(@id, @name)", _testValues);
 
-    expect(rs.columnsNumber, 0);
-    expect(rs.columnNames, isEmpty);
-    expect(rs.rowsNumber, 0);
-    expect(rs.rows, isEmpty);
-    expect(rs.rowMaps, isEmpty);
+    expect(rs!.columnsNumber, 0);
+    expect(rs!.columnNames, isEmpty);
+    expect(rs!.rowsNumber, 0);
+    expect(rs!.rows, isEmpty);
+    expect(rs!.rowMaps, isEmpty);
   });
 }

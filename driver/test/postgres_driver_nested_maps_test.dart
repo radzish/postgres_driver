@@ -4,8 +4,8 @@ import 'package:test/test.dart';
 import 'stuff.dart';
 
 void main() {
-  PGConnection conn;
-  ResultSet rs;
+  late PGConnection conn;
+  ResultSet? rs;
 
   Future<void> _testInsert(PGConnection conn) async {
     (await conn.execute(
@@ -45,7 +45,7 @@ void main() {
     );
 
     expect(
-      rs.rowMaps,
+      rs!.rowMaps,
       [
         {
           "id": 0,
@@ -73,7 +73,7 @@ void main() {
     );
 
     expect(
-      rs.rows,
+      rs!.rows,
       [
         [0, "street0", 0, 0],
         [1, "street1", 1, 1]

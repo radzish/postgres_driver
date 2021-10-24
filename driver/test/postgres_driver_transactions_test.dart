@@ -4,8 +4,8 @@ import 'package:test/test.dart';
 import 'stuff.dart';
 
 void main() {
-  PGConnection conn;
-  ResultSet rs;
+  late PGConnection conn;
+  ResultSet? rs;
 
   List<Map<String, dynamic>> _testValues = [
     {"id": 0, "name": "name0"},
@@ -45,7 +45,7 @@ void main() {
       {"id": 0}
     ]);
 
-    expect(rs.rowMaps, [
+    expect(rs!.rowMaps, [
       {"id": 0, "name": "name0updated"}
     ]);
   });
@@ -61,7 +61,7 @@ void main() {
       {"id": 0}
     ]);
 
-    expect(rs.rowMaps, [
+    expect(rs!.rowMaps, [
       {"id": 0, "name": "name0"}
     ]);
   });
@@ -77,7 +77,7 @@ void main() {
       {"id": 0}
     ]);
 
-    expect(rs.rowMaps, [
+    expect(rs!.rowMaps, [
       {"id": 0, "name": "name0updated"}
     ]);
 
@@ -87,7 +87,7 @@ void main() {
       {"id": 0}
     ]);
 
-    expect(rs.rowMaps, [
+    expect(rs!.rowMaps, [
       {"id": 0, "name": "name0"}
     ]);
   });

@@ -4,8 +4,8 @@ import 'package:test/test.dart';
 import 'stuff.dart';
 
 void main() {
-  PGConnection conn;
-  ResultSet rs;
+  late PGConnection conn;
+  ResultSet? rs;
 
   setUp(() async {
     conn = createConnection();
@@ -40,7 +40,7 @@ void main() {
 
     rs = await conn.select("select update_time from test_table", params: {});
 
-    expect(rs.rowMaps, [
+    expect(rs!.rowMaps, [
       {"update_time": time}
     ]);
   });
@@ -51,7 +51,7 @@ void main() {
 
     rs = await conn.select("select double_value from test_table", params: {});
 
-    expect(rs.rowMaps, [
+    expect(rs!.rowMaps, [
       {"double_value": doubleValue}
     ]);
   });
@@ -71,7 +71,7 @@ void main() {
 
     rs = await conn.select("select json_object from test_table");
 
-    expect(rs.rowMaps, [
+    expect(rs!.rowMaps, [
       {"json_object": jsonObject}
     ]);
   });
@@ -93,7 +93,7 @@ void main() {
 
     rs = await conn.select("select json_object from test_table");
 
-    expect(rs.rowMaps, [
+    expect(rs!.rowMaps, [
       {"json_object": jsonObjectArray}
     ]);
   });
@@ -110,7 +110,7 @@ void main() {
 
     rs = await conn.select("select json_object from test_table");
 
-    expect(rs.rowMaps, [
+    expect(rs!.rowMaps, [
       {"json_object": jsonObjectArray}
     ]);
   });
@@ -130,7 +130,7 @@ void main() {
 
     rs = await conn.select("select jsonb_object from test_table");
 
-    expect(rs.rowMaps, [
+    expect(rs!.rowMaps, [
       {"jsonb_object": jsonObject}
     ]);
   });
@@ -152,7 +152,7 @@ void main() {
 
     rs = await conn.select("select jsonb_object from test_table");
 
-    expect(rs.rowMaps, [
+    expect(rs!.rowMaps, [
       {"jsonb_object": jsonObjectArray}
     ]);
   });
@@ -169,7 +169,7 @@ void main() {
 
     rs = await conn.select("select jsonb_object from test_table");
 
-    expect(rs.rowMaps, [
+    expect(rs!.rowMaps, [
       {"jsonb_object": jsonObjectArray}
     ]);
   });
@@ -184,7 +184,7 @@ void main() {
 
     rs = await conn.select("select jsonb_object from test_table");
 
-    expect(rs.rowMaps, [
+    expect(rs!.rowMaps, [
       {"jsonb_object": jsonObjectArray}
     ]);
   });
@@ -206,7 +206,7 @@ void main() {
     await conn.update("test_table", jsonObject, criteria: "id = @id", criteriaParams: {"id": "0"});
 
     rs = await conn.select("select jsonb_object from test_table");
-    expect(rs.rowMaps, [
+    expect(rs!.rowMaps, [
       {"jsonb_object": array}
     ]);
   });

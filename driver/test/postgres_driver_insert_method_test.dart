@@ -2,8 +2,8 @@ import 'package:postgres_driver/postgres_driver.dart';
 import 'package:test/test.dart';
 
 void main() {
-  PGConnection conn;
-  ResultSet rs;
+  late PGConnection conn;
+  ResultSet? rs;
 
   List<Map<String, dynamic>> _testValues = [
     {"id": 0, "name": "name0"},
@@ -36,14 +36,14 @@ void main() {
     await conn.insert("test_table", _testValues.last);
 
     rs = await conn.execute("select id, name from test_table");
-    expect(rs.rowMaps, [_testValues.last]);
+    expect(rs!.rowMaps, [_testValues.last]);
   });
 
   test("insert should add multiple records", () async {
     await conn.insertMultiple("test_table", _testValues);
 
     rs = await conn.execute("select id, name from test_table");
-    expect(rs.rowMaps, _testValues);
+    expect(rs!.rowMaps, _testValues);
   });
 
   test("insert should add multiple records combining different keys", () async {
@@ -67,6 +67,6 @@ void main() {
     await conn.insertMultiple("test_table_diff_keys", differentValues);
 
     rs = await conn.execute("select id, name0, name1 from test_table_diff_keys");
-    expect(rs.rowMaps, differentValues);
+    expect(rs!.rowMaps, differentValues);
   });
 }
